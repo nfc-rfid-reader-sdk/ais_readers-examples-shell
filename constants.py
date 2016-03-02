@@ -15,7 +15,7 @@ SERV_JOIN = 3.0 #timeout
 #pass
 PASS      = '1111'
 
-
+RECORDS_TO_ACK  = 1
 NFC_UID_MAX_LEN = 10
 DL_STATUS       = E_ERROR_CODES
  

@@ -52,7 +52,13 @@ def AISGetVersion():
 def AISUpdateAndGetCount():            
         return mySO.AIS_List_UpdateAndGetCount()
     
-def AISOpen(): 
+def AISOpen():
+        """
+           Open all devices with handlers
+           :param hnd:device handlers
+           :return:returns nothing
+        """
+ 
         for hnd in HND_LIST:
             aop = mySO.AIS_Open(hnd)            
             print "AIS_Open():{ %d(%s):%s} hnd[0x%X]" % (aop,hex(aop),E_ERROR_CODES[aop],hnd)    
@@ -125,13 +131,7 @@ def AISGetDLLVersion():
     dll_ver.restype = c_char_p
     return dll_ver()    
     
-# def open_all_devices():
-        # for i in HND_LIST:
-                # AISOpen(i)
 
-# def close_all_devices():
-        # for i in HND_LIST:
-                # AISClose(i)
                 
 
 def whitelist_read():
@@ -174,7 +174,7 @@ def blacklist_read():
 def blacklist_write():
     print "=- Write Black List -="
     print "Try to write black-list decimal numbers (delimited with anything)"
-    print "eg. 2, 102 250;11"
+    print "eg. 2, 102 250;11\n"
     sys.stdin.read(1)
     black_list_write = raw_input('Enter Black List: ')
     dev              = DEV_HND    
@@ -201,26 +201,27 @@ def wr_status(funct_name,dl_status):
     res = funct_name + ': {%d(%s): %s}\n' % (dl_status,hex(dl_status),E_ERROR_CODES[dl_status])    
     return res
         
-def dbg_action2str(action_value):    
-    res = '[%d(%s):%s]' % (action_value,hex(action_value),E_CARD_ACTION[action_value])
-    return res
+# def dbg_action2str(action_value):    
+    # res = '[%d(%s):%s]' % (action_value,hex(action_value),E_CARD_ACTION[action_value])
+    # return res
    
-def dl_status2str(status):
-    res = '[%d(%s):%s]' % (status,hex(status),E_ERROR_CODES[status])
-    return res
-
-# def dbg_action2str(action_value):
-#     dbg_a = mySO.dbg_action2str
-#     dbg_a.argtype = c_int
-#     dbg_a.restype = c_char_p    
-#     return dbg_a()
-
 # def dl_status2str(status):
-#     dl_s = mySO.dl_status2str
-#     dl_s.argtype = DL_STATUS
-#     dl_s.restype = c_char_p
-#     dl_s(status)
-#     return dl_s()
+    # res = '[%d(%s):%s]' % (status,hex(status),E_ERROR_CODES[status])
+    # return res
+
+    
+    
+def dbg_action2str(action_value):
+    dbg_a = mySO.dbg_action2str
+    dbg_a.argtype = c_int
+    dbg_a.restype = c_char_p    
+    return dbg_a(action_value)
+
+def dl_status2str(status):
+    dl_s = mySO.dl_status2str
+    dl_s.argtype = DL_STATUS
+    dl_s.restype = c_char_p    
+    return dl_s(status)
 
 
 
@@ -327,14 +328,57 @@ def get_unread_log_one():
         u_log_info()
         
     def u_log_get():
-        dev.status = mySO.AIS_UnreadLOG_Get(dev.hnd)
+        logIndex     = c_int()
+        logAction    = c_int()
+        logReaderId  = c_int()
+        logCardId    = c_int()
+        logSystemId  = c_int()
+        nfcUid       = (c_uint8 * NFC_UID_MAX_LEN)()
+        nfcUidLen    = c_int()
+        timeStamp    = c_uint64() 
+        nfcUid       = str()
+        
+        print rte_list_header[0],'\n', \
+              rte_list_header[1],'\n', \
+              rte_list_header[2]
+        
+        dev.status = mySO.AIS_UnreadLOG_Get(dev.hnd,
+                                            byref(logIndex),
+                                            byref(logAction),
+                                            byref(logReaderId),
+                                            byref(logCardId),
+                                            byref(logSystemId),
+                                            nfcUid,
+                                            byref(nfcUidLen),
+                                            byref(timeStamp)
+                                           )
+        if dev.status:            
+            return 
+        nfcuid = ''    
+        for i in range(0,nfcUidLen.value):                
+            nfcuid += ":%02X" % nfcUid[i]
+            
+        uid_uid_len = '[' + str(nfcUidLen.value) + '] | ' + nfcuid 
+        print rte_format.format (logIndex.value,                                     
+                                 dbg_action2str(logAction.value),
+                                 logReaderId.value,
+                                 logCardId.value,
+                                 logSystemId.value,
+                                 #uidUidLen,#nfc_uid + nfc_uid_len                                    
+                                 uid_uid_len,
+                                 timeStamp.value,
+                                 time.ctime(timeStamp.value)
+                                    )                            
+        print rte_list_header[2]                                          
+        
         print wr_status("AIS_UnreadLOG_Get()",dev.status)
-        if dev.status:
-            return
+        
         u_log_info()
         
     def u_log_ack():
-        dev.status = mySO.AIS_UnreadLOG_Ack(dev.hnd,1)
+        rec_to_ack = c_uint32()
+        rec_to_ack = RECORDS_TO_ACK
+        dev.status = mySO.AIS_UnreadLOG_Ack(dev.hnd,rec_to_ack)
         print wr_status("AIS_UnreadLOG_Ack()",dev.status)
         if dev.status:
             return
@@ -362,9 +406,10 @@ def get_unread_log_one():
         elif m_char == '3':
             u_log_ack()
         
-        elif m_char == 'x':
+        elif m_char == 'x':            
             break
- 
+    
+    
     
 
 def change_password(new_pass):
@@ -579,7 +624,7 @@ def PrintRTE():
         
         
         while True:                
-            DL_STATUS =  mySO.AIS_ReadRTE( dev.hnd,
+            DL_STATUS =  mySO.AIS_ReadRTE(dev.hnd,
                                            byref(logIndex),
                                            byref(logAction),
                                            byref(logReaderId),
@@ -848,10 +893,10 @@ if __name__ == '__main__':
         if not MeniLoop():
             break
           
-    # if sys.platform.startswith('linux'):
-            # os.system('pkill -9 python')
-    # elif sys.platform.startswith('win'):            
-            # sys.exit(0)
+    if sys.platform.startswith('linux'):
+        os.system('pkill -9 python')
+    elif sys.platform.startswith('win'):            
+        sys.exit(0)
         
            
     
