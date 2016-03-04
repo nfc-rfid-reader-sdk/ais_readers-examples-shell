@@ -15,6 +15,7 @@ SERV_JOIN = 3.0 #timeout
 #pass
 PASS      = '1111'
 
+SECONDS         = 10
 RECORDS_TO_ACK  = 1
 NFC_UID_MAX_LEN = 10
 DL_STATUS       = E_ERROR_CODES
@@ -29,11 +30,12 @@ WHITE_LIST_WRITE = 'white_list_write'
 NEW_PASS         = 'new_pass'
 
 
+
 #apache mysql
 HTTP            = 'http://'
 SERVER_NAME     = 'localhost'
 USER_NAME       = 'root'
-RTE_EVENTS      = '/events.php'
+RTE_EVENTS      = '/aisreadersbbb/events.php'
 
 #local mysql
 SERVER_NAME      = 'localhost'

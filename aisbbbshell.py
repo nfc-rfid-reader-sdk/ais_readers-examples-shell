@@ -3,10 +3,11 @@
 """
 
 @author: Vladan S
-@version: 2.0.0.0    
+@version: 2.0.1.0    
+
 """
 
-
+#$postprovera = file_get_contents("php://input")
 
 
 
@@ -27,6 +28,7 @@ HND_AIS   = c_void_p()
 devCount  = c_long()  
 DEV_HND   = device_list .S_DEVICE()
 log_t     = device_list .S_LOG()
+
      
 
 
@@ -308,24 +310,25 @@ def get_unread_log_one():
     log_available = c_uint32()
     r_log         = c_int   
     dev           = DEV_HND
-   
+    
     
     def u_log_info():
         r_log = mySO.AIS_ReadLog_Count(dev.hnd)    
         if r_log:
-            print "AIS_ReadLog_Count %d\n" % r_log
+            print "AIS_ReadLog_Count() %d\n" % r_log
         
         r_log = mySO.AIS_ReadRTE_Count(dev.hnd)
         if r_log:
-            print "AIS_ReadLog_Count %d\n" % r_log
+            print "AIS_ReadRTE_Count() %d\n" % r_log
             
     def u_log_count():
-        dev.status = mySO.AIS_UnreadLOG_Count(dev.hnd,byref(log_available))
-        if dev.status:
-            print wr_status("AIS_UnreadLOG_Count()",dev.status)
-            return
-        print "AIS_UnreadLOG_Count() = log_available:  %d\n" % log_available.value
-        u_log_info()
+        # dev.status = mySO.AIS_UnreadLOG_Count(dev.hnd,byref(log_available))
+        # if dev.status:
+            # print wr_status("AIS_UnreadLOG_Count()",dev.status)
+            # return
+        MainLoop()
+        print "LOG unread (incremental) = %d\n" % dev.UnreadLog
+       # u_log_info()
         
     def u_log_get():
         logIndex     = c_int()
@@ -386,13 +389,9 @@ def get_unread_log_one():
         
     def print_meni():
         print """
-            ---------------    
-               1: Count
-               2: Get
-               3: Ack
-                
-               x: Exit
-            ---------------    
+            -----------------------------------------    
+               1: Count | 2:Get | 3: Ack | x: Exit              
+              
               """
               
     print_meni()          
@@ -408,7 +407,8 @@ def get_unread_log_one():
         
         elif m_char == 'x':            
             break
-    
+            
+    print ShowMeni()
     
     
 
@@ -501,16 +501,15 @@ def PrintLOG():
 def RTEListen():
    
     stop_time = c_uint64()
-    stop_time = time.time() + 20 #10
+    stop_time = time.time() + 10 #10
     dev       = DEV_HND
-    print("Wait for RTE...")       
+    print"Wait for RTE for %d..." % SECONDS       
     while (time.ctime(time.time()) < time.ctime(stop_time)) :
         for hnd in HND_LIST:
             dev.hnd = hnd            
             MainLoop()                       
-            time.sleep(THD_SLEEP)
-     
-    print 'End listen'    
+        time.sleep(THD_SLEEP)     
+    print "End RTE listen"    
     
             
             
@@ -602,7 +601,8 @@ def GetListInformation():
     
     
 def PrintRTE():
-  
+        
+      
         logIndex     = c_int()
         logAction    = c_int()
         logReaderId  = c_int()
@@ -646,7 +646,7 @@ def PrintRTE():
             
             
             
-            if  DL_STATUS != 0:
+            if  DL_STATUS != 0:            
                 break  
             nfcuid = ''    
             for i in range(0,dev.log.log_nfc_uid_len):                
@@ -662,32 +662,41 @@ def PrintRTE():
                                      dev.log.log_timestamp,
                                      time.ctime(dev.log.log_timestamp)
                                     )                            
-            print rte_list_header[2]                       
+            print rte_list_header[2] 
+        print "LOG unread (incremental) = %d" % dev.UnreadLog             
         print  wr_status('AIS_ReadRTE()', DL_STATUS)
     
 def MainLoop():
-       
-        dev               = DEV_HND        
+                       
         real_time_events  = c_int()
         log_available     = c_int()
+        unreadLog         = c_int()
         cmd_responses     = c_int()
         cmd_percent       = c_int()
+        device_status     = c_int()
         time_out_occurred = c_int()
         _status           = c_int()
-                  
-        dev.status      =  mySO.AIS_MainLoop(dev.hnd,
-                                                byref(real_time_events),
-                                                byref(log_available),
-                                                byref(cmd_responses),                                                 
-                                                byref(cmd_percent),
-                                                byref(time_out_occurred),
-                                                byref(_status)
+        
+        
+        
+        dev               = DEV_HND         
+        dev.status        =  mySO.AIS_MainLoop(dev.hnd,
+                                             byref(real_time_events),
+                                             byref(log_available),
+                                             byref(unreadLog),
+                                             byref(cmd_responses),                                                 
+                                             byref(cmd_percent),
+                                             byref(device_status),
+                                             byref(time_out_occurred),
+                                             byref(_status)
                                             ) 
              
         dev.RealTimeEvents  = real_time_events.value
         dev.LogAvailable    = log_available.value
+        dev.UnreadLog       = unreadLog.value
         dev.cmdResponses    = cmd_responses.value                                                 
         dev.cmdPercent      = cmd_percent.value
+        dev.DeviceStatus    = device_status.value
         dev.TimeoutOccurred = time_out_occurred.value
         dev.Status          = _status.value
          
@@ -700,7 +709,13 @@ def MainLoop():
         if dev.LogAvailable:
             print("LOG= %d\n" % dev.LogAvailable)
             PrintLOG()
-              
+        
+        
+        if dev.UnreadLog_last <> dev.UnreadLog:                                
+                   # print "LOG unread (incremental) = %d" % dev.UnreadLog                 
+                    dev.UnreadLog_last = dev.UnreadLog
+                    
+                  
         if dev.TimeoutOccurred:
             print("TimeoutOccurred= %d\n" % dev.TimeoutOccurred)  
             
@@ -719,6 +734,7 @@ def MainLoop():
         if dev.cmdResponses:            
             print "\n-- COMMAND FINISH !\n"
         
+       
        
         return True 
     
