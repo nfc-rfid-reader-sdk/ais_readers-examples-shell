@@ -13,7 +13,7 @@ RTE_JOIN  = 1.0 #timeout 3.0
 SERV_JOIN = 3.0 #timeout
 
 #pass
-PASS      = '1111'
+PASS      = "1111"
 
 SECONDS         = 10
 RECORDS_TO_ACK  = 1
