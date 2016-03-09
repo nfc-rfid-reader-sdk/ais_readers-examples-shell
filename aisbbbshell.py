@@ -3,7 +3,7 @@
 """
 
 @author: Vladan S
-@version: 2.0.1.2  (lib:4.8.0)    
+@version: 2.0.1.3  (lib:4.8.0)    
 
 """
 
@@ -261,10 +261,10 @@ def log_by_index():
     stop_index  = int(raw_input("Enter index stop :"))
     dev         = DEV_HND          
     dev.status  = mySO.AIS_GetLogByIndex(dev.hnd,PASS,start_index,stop_index)        
-    print 'AIS_GetLogByIndex:(pass: %s [ %d - %d ] >> %s)' % (PASS,start_index,stop_index,E_ERROR_CODES[dev.status])
-    DoCmd()
+    print 'AIS_GetLogByIndex:(pass: %s [ %d - %d ] >> %s)' % (PASS,start_index,stop_index,E_ERROR_CODES[dev.status])    
     if dev.status != 0:
         return
+    DoCmd()    
     PrintLOG()
     
     
@@ -277,10 +277,10 @@ def log_by_time():
     end_time   = c_uint64(input("Enter time-stamp stop :"))       
     dev        = DEV_HND       
     dev.status = mySO.AIS_GetLogByTime(dev.hnd,PASS,start_time,end_time)
-    print 'AIS_GetLogByTime:(pass: %s [ %10d - %10d ] >> %s)' % (PASS,start_time.value,end_time.value,E_ERROR_CODES[dev.status])
-    DoCmd()
+    print 'AIS_GetLogByTime:(pass: %s [ %10d - %10d ] >> %s)' % (PASS,start_time.value,end_time.value,E_ERROR_CODES[dev.status])    
     if dev.status !=0:
         return
+    DoCmd()    
     PrintLOG()  
     
 def get_unread_log_one():
