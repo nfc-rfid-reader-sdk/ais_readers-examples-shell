@@ -3,11 +3,11 @@
 from dl_status import E_ERROR_CODES
 import ctypes
 
-LIB_PATH     = '\\lib\\testing\\ver.4.8.0\\'
+LIB_PATH     = '/lib/testing/ver.4.8.0/'
 
-WIN_PATH     = 'windows\\x86\\'
-LINUX_PATH   = 'linux//x86//'
-ARMHF_PATH   = 'linux//arm-hf//'
+WIN_PATH     = 'windows/x86/'
+LINUX_PATH   = 'linux/x86/'
+ARMHF_PATH   = 'linux/arm-hf/'
 
 LIB_WIN32    = 'ais_readers-x86.dll'
 LIB_LINUX    = 'libais_readers-x86_64.so'
