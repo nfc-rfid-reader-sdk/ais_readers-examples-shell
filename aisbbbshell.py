@@ -3,7 +3,7 @@
 """
 
 @author: Vladan S
-@version: 2.0.1.1    
+@version: 2.0.1.2  (lib:4.8.0)    
 
 """
 
@@ -29,11 +29,11 @@ log_t     = device_list .S_LOG()
 
 def GetPlatformLib():       
             if sys.platform.startswith("win32"):
-                return windll.LoadLibrary(os.getcwd() + '\\lib\\' + CWIN32)
+                return windll.LoadLibrary(os.getcwd() + LIB_PATH + WIN_PATH + LIB_WIN32)
             elif sys.platform.startswith("linux"):
-                return cdll.LoadLibrary(os.getcwd() + '//lib//' + CARMHF) #CARMHF for BB
+                return cdll.LoadLibrary(os.getcwd() + LIB_PATH + LINUX_PATH + LIB_LINUX) #ARMHF_PATH + LIB_ARMHF (for BeagleBoneBlack)
             elif platform().lower().find('armv7l-with-debian') > -1:
-                return cdll.LoadLibrary(os.getcwd() + '//lib/' + CARMHF) #CARM
+                return cdll.LoadLibrary(os.getcwd() + LIB_PATH + LINUX_PATH + LIB_ARMHF) #CARM
     
     
 def AISGetVersion():        

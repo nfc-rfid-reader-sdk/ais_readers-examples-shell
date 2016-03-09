@@ -3,11 +3,18 @@
 from dl_status import E_ERROR_CODES
 import ctypes
 
+LIB_PATH     = '\\lib\\testing\\ver.4.8.0\\'
 
-CWIN32    = 'ais_readers-x86.dll'
-CLINUX    = 'libais_readers-x86_64.so'
-CARM      = 'libais_readers-arm.so'
-CARMHF    = 'libais_readers-armhf.so'
+WIN_PATH     = 'windows\\x86\\'
+LINUX_PATH   = 'linux//x86//'
+ARMHF_PATH   = 'linux//arm-hf//'
+
+LIB_WIN32    = 'ais_readers-x86.dll'
+LIB_LINUX    = 'libais_readers-x86_64.so'
+LIB_ARM      = 'libais_readers-arm.so'
+LIB_ARMHF    = 'libais_readers-armhf.so'
+
+
 THD_SLEEP = .7
 RTE_JOIN  = 1.0 #timeout 3.0
 SERV_JOIN = 3.0 #timeout
