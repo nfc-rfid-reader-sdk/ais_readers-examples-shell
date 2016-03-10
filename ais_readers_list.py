@@ -1,18 +1,18 @@
 E_KNOWN_DEVICE_TYPES = {
-    'DL_AIS_100':0,
-    'DL_AIS_20':1 ,
-    'DL_AIS_30':2,
-    'DL_AIS_35':3,
-    'DL_AIS_50':4,
-    'DL_AIS_110':5,
-    'DL_AIS_LOYALITY':6,  
-    'DL_AIS_37':7,
-    'DL_AIS_BMR':11,
-    'DL_AIS_BASE_HD':12,
-    'DL_XRCA':20,
-    'DL_UNKNOWN_DEVICE':21,
-    'DL_BASE_HD':28,
-    'DL_AIS_SYSTEM_TYPES_COUNT':0xFF    
+    'DL_UNKNOWN_DEVICE':0,
+    'DL_AIS_100':1,
+    'DL_AIS_20':2,
+    'DL_AIS_30':3,
+    'DL_AIS_35':4,
+    'DL_AIS_50':5,
+    'DL_AIS_110':6,
+    'DL_AIS_LOYALITY':7,  
+    'DL_AIS_37':8,
+    'DL_AIS_BMR':9,
+    'DL_AIS_BASE_HD':10,
+    'DL_AIS_BASE_HD_SDK':11,
+    
+    'DL_AIS_SYSTEM_TYPES_COUNT':12    
 } 
 
 E_CARD_ACTION = {

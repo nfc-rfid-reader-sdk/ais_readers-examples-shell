@@ -3,7 +3,7 @@
 """
 
 @author: Vladan S
-@version: 2.0.1.3  (lib:4.8.0)    
+@version: 2.0.1.4  (lib:4.9.1)    
 
 """
 
@@ -33,7 +33,7 @@ def GetPlatformLib():
             elif sys.platform.startswith("linux"):
                 return cdll.LoadLibrary(os.getcwd() + LIB_PATH + LINUX_PATH + LIB_LINUX) #ARMHF_PATH + LIB_ARMHF (for BeagleBoneBlack)
             elif platform().lower().find('armv7l-with-debian') > -1:
-                return cdll.LoadLibrary(os.getcwd() + LIB_PATH + LINUX_PATH + LIB_ARMHF) #CARM
+                return cdll.LoadLibrary(os.getcwd() + LIB_PATH + LINUX_PATH + LIB_ARM) #CARM
     
     
 def AISGetVersion():        
@@ -123,8 +123,9 @@ def AISAddDeviceForCheck(devType,devId):
         return mySO.AIS_List_AddDeviceForCheck(devType,devId)
     
 
-def AISGetDLLVersion():
-    dll_ver = mySO.AIS_GetDLLVersion
+def AISGetLibraryVersion():
+    dll_ver = mySO.AIS_GetLibraryVersionStr    
+    #ll_ver.argtype = c_uint32
     dll_ver.restype = c_char_p
     return dll_ver()    
     
@@ -212,7 +213,7 @@ def dev_list():
         list_init = False
         dev       = DEV_HND
         if not list_init:
-            ListDevices() #prepare device list
+            ListDevices()   #prepare device list
             list_init = True
         print"checking...please wait..."       
         devCount = AISUpdateAndGetCount()
@@ -221,13 +222,9 @@ def dev_list():
             GetListInformation()
             AISOpen()
             for i in HND_LIST:    
-                dev.hnd = i            
-                
-                
+                dev.hnd = i                       
             dev.hnd  = HND_LIST[0]
-            print 'ACTIVE DEVICE HND >> [0x%X]\n' % dev.hnd
-            
-                
+            print 'ACTIVE DEVICE HND >> [0x%X]\n' % dev.hnd          
         else:
             print("NO DEVICE FOUND")
             
@@ -299,14 +296,10 @@ def get_unread_log_one():
             print "AIS_ReadRTE_Count() %d\n" % r_log
             
     def u_log_count():
-        # if DLL_VER_LESS <4.8.0
-        # dev.status = mySO.AIS_UnreadLOG_Count(dev.hnd,byref(log_available))
-        # if dev.status:
-        # print wr_status("AIS_UnreadLOG_Count()",dev.status)
-        # return
+       
         MainLoop()
         print "LOG unread (incremental) = %d\n" % dev.UnreadLog
-        # u_log_info()
+        u_log_info()
         
     def u_log_get():
         logIndex     = c_int()
@@ -387,7 +380,38 @@ def get_unread_log_one():
             
     print ShowMeni()
     
+def get_io_state():
+    pass
+    dev      = DEV_HND
+    intercom = c_uint32()
+    door     = c_uint32()
+    relay_state = c_uint32()
+    dev.status = mySO.AIS_GetIoState(dev.hnd,byref(intercom),byref(door),byref(relay_state))
+    if dev.status != 0:
+        print wr_status("AIS_GetIoState()",dev.status)
+        return
+    print "IO STATE= intercom= %d, door= %d, relay_state= %d\n" % (intercom.value,door.value,relay_state.value)
     
+    
+def relay_toogle():
+    dev  = DEV_HND
+    get_io_state()
+    dev.relay_state = not dev.relay_state
+    dev.status = mySO.AIS_RelayStateSet(dev.hnd,dev.relay_state)
+    print "AIS_RelayStateSet(RELAY= %d)" % dev.relay_state
+    print wr_status("AIS_RelayStateSet()",dev.status)
+    
+def lock_open():
+    
+    dev            = DEV_HND
+    pulse_duration = c_uint32
+    pulse_duration = PULSE_DURATION
+    
+    dev.status     = mySO.AIS_LockOpen(dev.hnd,pulse_duration)    
+    print "AIS_LockOpen(pulse_duration= %d ms)" % pulse_duration
+    print wr_status("AIS_LockOpen()",dev.status)
+        
+ 
 
 def change_password():
     global PASS
@@ -522,7 +546,7 @@ def GetTime():
     
 def ListDevices():
             
-        deviceType = E_KNOWN_DEVICE_TYPES['DL_BASE_HD']               
+        deviceType = E_KNOWN_DEVICE_TYPES['DL_AIS_BASE_HD_SDK']               
         print("AIS_List_GetDevicesForCheck() BEFORE / DLL STARTUP : %s" % ( AISGetDevicesForCheck()))         
         AISEraseAllDevicesForCheck()        
         
@@ -770,7 +794,7 @@ def TestLights():
  
 
 def init():   
-    print AISGetDLLVersion()     
+    print AISGetLibraryVersion()     
     dev_list()      
     print ShowMeni()
     
@@ -785,12 +809,13 @@ def ShowMeni():  #q,d,o,c,d,t,T,E,p,l,n,N,w,W,b,B,r,g,R,G,v,F,i,m,x,u
         Press key to select action\n
         q : List devices\t\t\to : Open device\t\t\t\tc : Close device        
         d : Get devices count\t\t\tt : Get time\t\t\t\tT : Set time                    
-        r : Real Time Events\t\t\tP : Set default password\t\tp : Change password
+        r : Real Time Events\t\t\tP : Set application password\t\tp : Change device password
         l : Get log\t\t\t\tn : Get log by Index\t\t\tN : Get log by Time       
         u : Get unread log\t\t\tw : White-list Read\t\t\tW : White-list Write                       
         b : Black-list Read\t\t\tB : Black-list Write\t\t\tL : Test Lights
-        v : Get DLLVersion\t\t\tf : Get Firmware Version\t\ti : Device Information        
-        m : Meni                       
+        g : Get IO state\t\t\tG : Open gate/lock\t\t\ty : Relay toggle state 
+        v : Get Library Version\t\t\tf : Get Firmware Version\t\ti : Device Information        
+        m : Meni\t\t\t\tQ : Edit device list for checking                       
         x : EXIT 
         --------------------------
                 
@@ -799,10 +824,11 @@ def ShowMeni():  #q,d,o,c,d,t,T,E,p,l,n,N,w,W,b,B,r,g,R,G,v,F,i,m,x,u
 
  
 def MeniLoop():        
-        m_char = sys.stdin.read(1)    
-        if m_char.isdigit():            
-            DEV_HND.hnd = HND_LIST[int(m_char) - 1]                    
-            print 'ACTIVE DEVICE HND : [0x%X]' %  DEV_HND.hnd  #HND_AIS        
+        m_char = sys.stdin.read(1) 
+        dev    = DEV_HND    
+        if m_char.isdigit():             
+            dev.hnd = HND_LIST[int(m_char) - 1]                    
+            print 'ACTIVE DEVICE : index[%d] | hnd= 0x%X' % (HND_LIST.index(dev.hnd),dev.hnd)  #HND_AIS        
    
         if m_char == 'x': 
             print 'EXIT\n'
@@ -847,7 +873,15 @@ def MeniLoop():
         
         elif m_char == 'u':
             get_unread_log_one()
-            
+        
+        elif m_char == 'g':
+            get_io_state()
+        
+        elif m_char == 'G':
+            lock_open()
+         
+        elif m_char == 'y':
+            relay_toogle()
         
         elif m_char == 't':            
             AISGetTime()
@@ -862,7 +896,7 @@ def MeniLoop():
             TestLights()
         
         elif m_char == 'v':
-            print AISGetDLLVersion()
+            print AISGetLibraryVersion()
         
         elif m_char == 'f':            
             print AISGetVersion() 

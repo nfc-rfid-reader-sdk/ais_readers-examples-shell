@@ -3,11 +3,12 @@
 from dl_status import E_ERROR_CODES
 import ctypes
 
-LIB_PATH     = '/lib/testing/ver.4.8.0/'
+LIB_PATH     = '/lib/testing/ver.4.9.1/'
 
 WIN_PATH     = 'windows/x86/'
 LINUX_PATH   = 'linux/x86/'
 ARMHF_PATH   = 'linux/arm-hf/'
+ARM_PATH     = 'linux/arm/'
 
 LIB_WIN32    = 'ais_readers-x86.dll'
 LIB_LINUX    = 'libais_readers-x86_64.so'
@@ -26,6 +27,7 @@ SECONDS         = 10
 RECORDS_TO_ACK  = 1
 NFC_UID_MAX_LEN = 10
 DL_STATUS       = E_ERROR_CODES
+PULSE_DURATION  = 2000
  
 #url_query_string
 START_INDEX      = 'start_index'

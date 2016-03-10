@@ -1,4 +1,4 @@
-from ctypes import c_int,c_uint8,c_uint64,c_void_p,c_bool,c_long
+from ctypes import c_int,c_uint8,c_uint32,c_uint64,c_void_p,c_bool,c_long
 import constants
 
 
@@ -15,6 +15,7 @@ class S_LOG:
     
 
 class S_DEVICE:
+    idx               = c_int(),
     hnd               = c_void_p()
     print_percent_hdr = c_bool(),
     percent_old       = c_int(),
@@ -28,6 +29,7 @@ class S_DEVICE:
     DeviceStatus      = c_int(),
     TimeoutOccurred   = c_int(),
     Status            = c_int(),
+    relay_state       = c_uint32(),
     log               = S_LOG()
     
     
