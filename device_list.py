@@ -15,7 +15,7 @@ class S_LOG:
     
 
 class S_DEVICE:
-    idx               = c_int(),
+    idx               = c_int,
     hnd               = c_void_p()
     print_percent_hdr = c_bool(),
     percent_old       = c_int(),

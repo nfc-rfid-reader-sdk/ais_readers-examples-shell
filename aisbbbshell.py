@@ -3,7 +3,7 @@
 """
 
 @author: Vladan S
-@version: 2.0.1.4  (lib:4.9.1)    
+@version: 2.0.1.5  (lib:4.9.1)    
 
 """
 
@@ -54,34 +54,38 @@ def AISOpen():
            :param hnd:device handlers
            :return:returns nothing
         """
+       
         dev = DEV_HND
         for hnd in HND_LIST:
-            aop = mySO.AIS_Open(hnd)            
+            aop     = mySO.AIS_Open(hnd) 
             dev.hnd = hnd
-            print "AIS_Open(0x%X):{ %d(%s):%s} hnd[0x%X]" % (dev.hnd,aop,hex(aop),E_ERROR_CODES[aop],hnd)    
-            if aop == 0:
+            print "AIS_Open(0x%X):{ %d(%s):%s} hnd[0x%X]" % (dev.hnd,aop,hex(aop),E_ERROR_CODES[aop],hnd)              
+            if aop == 0:               
                 AISGetTime()
                 print sys_get_timezone_info()
-    
+       
+                
 def AISClose():        
         for hnd in HND_LIST:
             aop = mySO.AIS_Close(hnd)
             print "AIS_Close():{ %d(%s):%s} hnd[0x%X]" % (aop,hex(aop),E_ERROR_CODES[aop],hnd)
         
          
-def AISGetTime():
-        
+def AISGetTime():        
         dev      = DEV_HND       
         currTime = c_uint64()        
         timezone = c_int()
         DST      = c_int()
         offset   = c_int()        
-      
+                
         dev.status = mySO.AIS_GetTime(dev.hnd,byref(currTime),byref(timezone),byref(DST),byref(offset))                            
-        res = "AIS_GetTime(dev= 0x%X)> {%d(%s):%s} = (tz= %d | dst= %d | offset= %d)  %d | %s\n" % (dev.hnd,dev.status,hex(dev.status),E_ERROR_CODES[dev.status],timezone.value,DST.value,offset.value,currTime.value, time.ctime(currTime.value)) 
-                                        
-        print res
-        return res
+        if dev.status:
+            wr_status("AIS_GetTime()",dev.status)
+            return
+        active_device()    
+        print "AIS_GetTime(dev[%d] hnd=0x%X)> {%d(%s):%s} = (tz= %d | dst= %d | offset= %d)  %d | %s\n" % (dev.idx + 1,dev.hnd,dev.status,hex(dev.status),E_ERROR_CODES[dev.status],timezone.value,DST.value,offset.value,currTime.value, time.ctime(currTime.value))                                        
+        
+        
         
     
 def AISSetTime():
@@ -90,16 +94,22 @@ def AISSetTime():
     timez    = c_int
     DST      = c_int
     offset   = c_int 
-    dev      = DEV_HND
-       
+    dev      = DEV_HND  
+    
+    # currTime = int(time.time())
+    # timez    = time.timezone
+    # DST      = time.daylight
+    # offset   = -3600 
+    
     currTime = int(time.time())
-    timez    = time.timezone
-    DST      = time.daylight
-    offset   = -3600 
-             
-    ais_set_time = mySO.AIS_SetTime
+    timez    = sys_get_timezone()
+    DST      = sys_get_daylight()
+    offset   = sys_get_dstbias()
+    
+    print active_device()         
+    ais_set_time          = mySO.AIS_SetTime
     ais_set_time.argtypes = (c_void_p,c_char_p,c_uint64,c_int,c_int,c_int)
-    ais_set_time.restype = c_int
+    ais_set_time.restype  = c_int
     result = ais_set_time(dev.hnd,PASS,currTime,timez,DST,offset)
     res    = "AIS_SetTime(pass:%s)> timezone=%d | DST=%d |offset=%d {%d(%s)%s}|%s\n" % \
              (PASS,timez,DST,offset,result,hex(result),E_ERROR_CODES[result],time.ctime(currTime))
@@ -123,17 +133,22 @@ def AISAddDeviceForCheck(devType,devId):
         return mySO.AIS_List_AddDeviceForCheck(devType,devId)
     
 
-def AISGetLibraryVersion():
-    dll_ver = mySO.AIS_GetLibraryVersionStr    
-    #ll_ver.argtype = c_uint32
+def AISGetLibraryVersionStr():
+    dll_ver = mySO.AIS_GetLibraryVersionStr       
     dll_ver.restype = c_char_p
     return dll_ver()    
     
 
-                
+def active_device():  
+    pass      
+    dev     = DEV_HND
+    dev.idx = HND_LIST.index(dev.hnd)    
+    res     = "Active device [%d] | hnd= 0x%X" % (dev.idx + 1,dev.hnd) 
+    return res    
 
-def whitelist_read():
+def whitelist_read():    
     print "-= Read White List =-"
+    print active_device()
     white_list_size = c_int()
     white_list      = c_char_p()    
     dev             = DEV_HND       
@@ -145,28 +160,25 @@ def whitelist_read():
     res = "AIS_Whitelist_Read(pass:%s): size= %d >%s" % (PASS,white_list_size,dl_status2str(dev.status))    
     print res
     print white_list.value            
-    return res,white_list.value 
-    
-    
-    
-    
+     
+ 
     
 def blacklist_read():
     print "-= Read Black List =-"
-    black_list_size = c_int()   
+    print active_device()
+    list_size       = c_int()  
+    str_black_list  = c_char_p()      
     dev             = DEV_HND
-   
-    dev.status = mySO.AIS_Blacklist_GetSize(dev.hnd,PASS, byref(black_list_size))    
-    black_list = (c_char * black_list_size.value)()   
-    res =  "AIS_Blacklist_GetSize(pass:%s): size= %d > %s\n" % (PASS,black_list_size.value,dl_status2str(dev.status))    
+  
+    dev.status    = mySO.AIS_Blacklist_Read(dev.hnd,PASS,byref(str_black_list))
+    if dev.status == 0: 
+        list_size = len(str_black_list.value)
+    
+    print "AIS_Blacklist_Read(pass:%s): black_list(size= %d | %s) > %s\n" % (PASS,list_size,str_black_list.value,dl_status2str(dev.status))    
     
     if dev.status and  black_list_size.value <= 0:        
-        return res
-
-    dev.status =  mySO.AIS_Blacklist_Read(dev.hnd, black_list);
-    l = list(black_list)
-    #l = list(black_list[i] for i in range(0,black_list_size.value))
-    print res,''.join(l)
+        return  
+    
                                            
 
 def blacklist_write():
@@ -177,28 +189,22 @@ def blacklist_write():
     black_list_write = raw_input('Enter Black List: ')
     dev              = DEV_HND    
     dev.status       = mySO.AIS_Blacklist_Write(dev.hnd,PASS,black_list_write)
-    res              = 'AIS_Blacklist_Write(pass:%s):b_list= %s > %s\n' %  (PASS,black_list_write,dl_status2str(dev.status))
-    print res
+    print "AIS_Blacklist_Write(pass:%s):b_list= %s > %s\n" %  (PASS,black_list_write,dl_status2str(dev.status))
+    
 
 
 def whitelist_write():
-   
+    pass
     print "=- Write White List -="     
     print "Enter white-list UIDs (in HEX format delimited with '.' or ':' or not)"
     print "Each UID separate by ',' or space eg. 37:0C:96:69,C2.66.EF.95 01234567\n"
-           
-	
+  
     sys.stdin.read(1)
     white_list_write = raw_input('Enter White List UID: ')    
     dev              = DEV_HND      
     dev.status       = mySO.AIS_Whitelist_Write(dev.hnd,PASS,white_list_write)
-    res              = '\nAIS_Whitelist_Write(pass:%s):w_list= %s > %s\n' %  (PASS,white_list_write,dl_status2str(dev.status))
-    print res
-
-
-
-
-
+    print "\nAIS_Whitelist_Write(pass:%s):w_list= %s > %s\n" %  (PASS,white_list_write,dl_status2str(dev.status))
+ 
 
 def print_percent_hdr():
         i = c_int
@@ -221,10 +227,8 @@ def dev_list():
         if devCount:
             GetListInformation()
             AISOpen()
-            for i in HND_LIST:    
-                dev.hnd = i                       
-            dev.hnd  = HND_LIST[0]
-            print 'ACTIVE DEVICE HND >> [0x%X]\n' % dev.hnd          
+            dev.hnd = HND_LIST[0]                
+            print active_device()
         else:
             print("NO DEVICE FOUND")
             
@@ -243,8 +247,8 @@ def DoCmd():
 def log_get():
     print("#=- Print log -=#")        
     dev        = DEV_HND         
-    dev.status = mySO.AIS_GetLog_Set(dev.hnd,PASS)
-    print wr_status('AIS_GetLog_Set()',dev.status)        
+    dev.status = mySO.AIS_GetLog(dev.hnd,PASS)
+    print wr_status('AIS_GetLog()',dev.status)        
     if dev.status != 0:
         return   
     DoCmd()
@@ -411,7 +415,70 @@ def lock_open():
     print "AIS_LockOpen(pulse_duration= %d ms)" % pulse_duration
     print wr_status("AIS_LockOpen()",dev.status)
         
+
+
+        
  
+def print_available_devices():
+    global max_dev
+    dev_name  = c_char_p()
+    dev_dsc   = c_char_p()
+    status    = DL_STATUS
+    #not_supported >> 0
+    max_dev   = E_KNOWN_DEVICE_TYPES['DL_AIS_SYSTEM_TYPES_COUNT'] 
+    
+    print max_dev
+    print "Known devices ( supported by %s )\n" % AISGetLibraryVersionStr()
+    for i in range(1,max_dev):
+        status = mySO.dbg_device_type(i,byref(dev_name),
+                                byref(dev_dsc),
+                                0,0,0,0,0)
+        sys.stdout.write("\tDevice type= %2d : " % i)
+        if status:
+            sys.stdout.write("NOT SUPORTED! \n")
+        else:
+            sys.stdout.write("'%15s' = %s\n" % (dev_name.value,dev_dsc.value))
+             
+ 
+def edit_device_list():
+    deviceType  = c_int()
+    deviceId    = c_int()
+    list_erased = False
+    status      = DL_STATUS
+    global max_dev
+    
+    print "Edit device types for checking..."
+    print "AIS_List_GetDevicesForCheck() ACTUAL List"
+    print AISGetDevicesForCheck()
+    print "Enter device type and then enter device BUS ID for check"
+    
+    print_available_devices()
+    while True:
+        sys.stdout.write("Enter device type (1,2, ... , %d) ('x' for exit)  : " % (max_dev-1))
+        sys.stdin.read(1)
+        r = raw_input()
+        if not r or r == 'x':
+            break
+         
+        deviceType = int(r)        
+        sys.stdout.write("Enter device bus ID (if full duplex then enter 0): ")    
+        sys.stdin.read(1)
+        r = raw_input()
+        if not r or r == 'x':
+            deviceId = 0
+        else:    
+            deviceId = int(r)    
+        
+        if list_erased == False:
+            AISEraseAllDevicesForCheck()
+            list_erased = True
+            
+        status = AISAddDeviceForCheck(deviceType,deviceId)
+        print "AISAddDeviceForCheck(type: %d, id: %d)> { %s }\n" % (deviceType,deviceId,dl_status2str(status))
+    
+    print "\nFinish list edit."
+    print "AIS_List_GetDevicesForCheck() AFTER UPDATE \n%s" % AISGetDevicesForCheck()
+    
 
 def change_password():
     global PASS
@@ -543,7 +610,6 @@ def GetTime():
         print  AISGetTime()
      
 
-    
 def ListDevices():
             
         deviceType = E_KNOWN_DEVICE_TYPES['DL_AIS_BASE_HD_SDK']               
@@ -558,7 +624,6 @@ def ListDevices():
         deviceId = 3        
         DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
         print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
-        
         
         print("AIS_List_GetDevicesForCheck() AFTER LIST UPDATE : \n%s" % ( AISGetDevicesForCheck()))
         
@@ -581,8 +646,11 @@ def GetListInformation():
         
         print format_grid[0],'\n',format_grid[1],'\n',format_grid[2]
       
-        devCount =  AISUpdateAndGetCount()              
-        del HND_LIST[:]   #erase all in list             
+        devCount =  AISUpdateAndGetCount()                 
+        del HND_LIST[:]   #erase all in list
+        
+       
+        
         for i in range(0,devCount):                             
             DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
                                                      byref(devSerial),
@@ -597,7 +665,7 @@ def GetListInformation():
                                                     )
             
             HND_LIST.append(hnd.value)
-            
+                                  
             print(mojFormat.format(i+1,
                                    hnd.value,
                                    devSerial.value.decode("utf-8"),
@@ -794,7 +862,7 @@ def TestLights():
  
 
 def init():   
-    print AISGetLibraryVersion()     
+    print AISGetLibraryVersionStr()     
     dev_list()      
     print ShowMeni()
     
@@ -826,14 +894,20 @@ def ShowMeni():  #q,d,o,c,d,t,T,E,p,l,n,N,w,W,b,B,r,g,R,G,v,F,i,m,x,u
 def MeniLoop():        
         m_char = sys.stdin.read(1) 
         dev    = DEV_HND    
-        if m_char.isdigit():             
-            dev.hnd = HND_LIST[int(m_char) - 1]                    
-            print 'ACTIVE DEVICE : index[%d] | hnd= 0x%X' % (HND_LIST.index(dev.hnd),dev.hnd)  #HND_AIS        
-   
+        if m_char.isdigit(): 
+            dev.hnd = HND_LIST[int(m_char) -1]    
+            dev.idx = HND_LIST.index(dev.hnd)        
+            print active_device()
+            
         if m_char == 'x': 
             print 'EXIT\n'
             AISClose()
             return False 
+        
+        elif m_char == 'Q':
+            edit_device_list()
+        
+        
         
         elif m_char == 'w':            
             whitelist_read()
@@ -883,7 +957,8 @@ def MeniLoop():
         elif m_char == 'y':
             relay_toogle()
         
-        elif m_char == 't':            
+        elif m_char == 't':  
+            
             AISGetTime()
         
         elif m_char == 'T':
@@ -896,7 +971,7 @@ def MeniLoop():
             TestLights()
         
         elif m_char == 'v':
-            print AISGetLibraryVersion()
+            print AISGetLibraryVersionStr()
         
         elif m_char == 'f':            
             print AISGetVersion() 
