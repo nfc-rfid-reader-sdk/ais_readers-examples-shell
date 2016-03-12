@@ -3,7 +3,7 @@
 """
 
 @author: Vladan S
-@version: 2.0.1.5  (lib:4.9.1)    
+@version: 2.0.1.6  (lib:4.9.2)    
 
 """
 
@@ -174,10 +174,11 @@ def blacklist_read():
     if dev.status == 0: 
         list_size = len(str_black_list.value)
     
-    print "AIS_Blacklist_Read(pass:%s): black_list(size= %d | %s) > %s\n" % (PASS,list_size,str_black_list.value,dl_status2str(dev.status))    
-    
+    print "AIS_Blacklist_Read(pass:%s): black_list(size= %d | %s) > %s" % (PASS,list_size,str_black_list.value,dl_status2str(dev.status))        
     if dev.status and  black_list_size.value <= 0:        
         return  
+    print [str_black_list.value]
+         
     
                                            
 

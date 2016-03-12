@@ -3,7 +3,7 @@
 from dl_status import E_ERROR_CODES
 import ctypes
 
-LIB_PATH     = '/lib/testing/ver.4.9.1/'
+LIB_PATH     = '/lib/testing/ver.4.9.2/'
 
 WIN_PATH     = 'windows/x86/'
 LINUX_PATH   = 'linux/x86/'
