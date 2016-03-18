@@ -1,3 +1,5 @@
+HND_LIST  = []
+
 E_KNOWN_DEVICE_TYPES = {
     'DL_UNKNOWN_DEVICE':0,
     'DL_AIS_100':1,

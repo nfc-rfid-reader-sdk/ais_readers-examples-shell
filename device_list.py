@@ -1,6 +1,6 @@
 from ctypes import c_int,c_uint8,c_uint32,c_uint64,c_void_p,c_bool,c_long
-import constants
 
+NFC_UID_MAX_LEN       = 10
 
 
 class S_LOG:
@@ -9,13 +9,13 @@ class S_LOG:
     log_reader_id     = c_int(),
     log_card_id       = c_int(),
     log_system_id     = c_int(),
-    log_nfc_uid       = (c_uint8 * constants.NFC_UID_MAX_LEN)(),
+    log_nfc_uid       = (c_uint8 * NFC_UID_MAX_LEN)(),
     log_nfc_uid_len   = c_int(),
     log_timestamp     = c_uint64()
     
 
 class S_DEVICE:
-    idx               = c_int,
+    idx               = c_int(),
     hnd               = c_void_p()
     print_percent_hdr = c_bool(),
     percent_old       = c_int(),
