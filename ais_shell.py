@@ -3,7 +3,7 @@
 """
 
 @author: Vladan S
-@version: 2.0.1.7  (lib:4.9.4)    
+@version: 2.0.1.8  (lib:4.9.4)    
 
 """
 
@@ -25,17 +25,25 @@ HND_AIS   = c_void_p()
 devCount  = c_long()  
 DEV_HND   = device_list .S_DEVICE()
 log_t     = device_list .S_LOG()
-global mySO 
 
 
-def GetPlatformLib():       
-            if sys.platform.startswith("win32"):                                    
-                return windll.LoadLibrary(os.getcwd() + LIB_PATH + WIN_PATH + LIB_WIN32)
-            elif sys.platform.startswith("linux"):
-                return cdll.LoadLibrary(os.getcwd() + LIB_PATH + LINUX_PATH + LIB_LINUX) #ARMHF_PATH + LIB_ARMHF (for BeagleBoneBlack)
-            elif platform().lower().find('armv7l-with-debian') > -1:
-                return cdll.LoadLibrary(os.getcwd() + LIB_PATH+ LINUX_PATH + LIB_ARM) #CARM    
 
+def GetPlatformLib():        
+    basename = os.path.basename(sys.argv[0])
+    if basename == AIS_SHELL:
+        LIB_PATH = SHELL_LIB_PATH
+    elif basename == AIS_HTTP:
+        LIB_PATH = HTTP_LIB_PATH
+       
+    if sys.platform.startswith("win32"):                                    
+        return windll.LoadLibrary(os.getcwd() + LIB_PATH + WIN_PATH + LIB_WIN32)
+    elif sys.platform.startswith("linux"):
+        return cdll.LoadLibrary(os.getcwd() + LIB_PATH + LINUX_PATH + LIB_LINUX) #ARMHF_PATH + LIB_ARMHF (for BeagleBoneBlack)
+    elif platform().lower().find('armv7l-with-debian') > -1:
+        return cdll.LoadLibrary(os.getcwd() + LIB_PATH+ LINUX_PATH + LIB_ARM) #CARM    
+    
+    
+    
 mySO = GetPlatformLib()
                 
 def AISGetVersion():        
@@ -405,8 +413,7 @@ def edit_device_list(choise,f_name=None,deviceType=0,deviceId=0):
         
         return ''.join(header) + \
                ''.join(body) + \
-               grid[1] + \
-               active_device() 
+               grid[1]  
     
     def show_actual_list(): #forChecking 2.              
         header = ["Show actual list for checking:\n",
@@ -424,8 +431,7 @@ def edit_device_list(choise,f_name=None,deviceType=0,deviceId=0):
         
         return ''.join(header) + \
                ''.join(body)  + \
-               header[3] + \
-               active_device() 
+               header[3] 
                
     def clear_list(): #3        
         AISEraseAllDevicesForCheck()
@@ -1145,6 +1151,7 @@ log_format = "| {0:5d} | {1:32s} | {2:5d} | {3:7d} | {4:5d} | {5:24s} | {6:#10d}
 if __name__ == '__main__':      
     #global mySO   
     #mySO = GetPlatformLib() 
+    
     init() 
     while True:
         if not MeniLoop():
