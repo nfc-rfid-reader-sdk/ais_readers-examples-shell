@@ -1,10 +1,11 @@
 
 
-SHELL_LIB_PATH  = '/lib/testing/ver.4.9.4/' #<--vrati za shell samo
-HTTP_LIB_PATH   = '/shell/lib/testing/ver.4.9.4/' 
+SHELL_LIB_PATH  = '/lib/testing/ver.4.9.6/' #<--vrati za shell samo
+HTTP_LIB_PATH   = '/shell/lib/testing/ver.4.9.6/' 
 
 AIS_SHELL       = 'ais_shell.py'
 AIS_HTTP        = 'ais_http.py'
+AIS_MAIN        = 'ais_readers_main_process.py'
 
 WIN_PATH        = 'windows/x86/'
 LINUX_PATH      = 'linux/x86/'

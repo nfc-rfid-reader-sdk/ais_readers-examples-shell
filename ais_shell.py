@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 """
-
-@author: Vladan S
-@version: 2.0.1.8  (lib:4.9.4)    
+@author   : Vladan S
+@version  : 2.0.2.0  (lib:4.9.6)    
+@copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
 
@@ -26,19 +26,20 @@ devCount  = c_long()
 DEV_HND   = device_list .S_DEVICE()
 log_t     = device_list .S_LOG()
 
-
+def GetBaseName():
+    return os.path.basename(sys.argv[0])
 
 def GetPlatformLib():        
-    basename = os.path.basename(sys.argv[0])
+    basename = GetBaseName()
     if basename == AIS_SHELL:
         LIB_PATH = SHELL_LIB_PATH
-    elif basename == AIS_HTTP:
+    elif basename == AIS_HTTP or basename == AIS_MAIN:
         LIB_PATH = HTTP_LIB_PATH
        
     if sys.platform.startswith("win32"):                                    
         return windll.LoadLibrary(os.getcwd() + LIB_PATH + WIN_PATH + LIB_WIN32)
     elif sys.platform.startswith("linux"):
-        return cdll.LoadLibrary(os.getcwd() + LIB_PATH + LINUX_PATH + LIB_LINUX) #ARMHF_PATH + LIB_ARMHF (for BeagleBoneBlack)
+        return cdll.LoadLibrary(os.getcwd() + LIB_PATH + ARMHF_PATH + LIB_ARMHF) #ARMHF_PATH + LIB_ARMHF (for BeagleBoneBlack)
     elif platform().lower().find('armv7l-with-debian') > -1:
         return cdll.LoadLibrary(os.getcwd() + LIB_PATH+ LINUX_PATH + LIB_ARM) #CARM    
     
@@ -136,12 +137,13 @@ def AISGetLibraryVersionStr():
     
 
 def active_device():  
-    pass      
+    pass 
     dev     = DEV_HND
     dev.idx = HND_LIST.index(dev.hnd) 
     dev.idx +=1    
-    res     = "Active device [%d] | hnd= 0x%X\n" % (dev.idx,dev.hnd) 
+    res     = "dev [%d] | hnd= 0x%X  " % (dev.idx,dev.hnd) 
     return res    
+   
 
 def whitelist_read():       
     white_list_size = c_int()
@@ -152,8 +154,8 @@ def whitelist_read():
         white_list_size = len(white_list.value)
     else:
         white_list_size = 0    
-    res = "AIS_Whitelist_Read(pass:%s): size= %d >%s\n" % (PASS,white_list_size,dl_status2str(dev.status))    
-    return active_device() + res + white_list.value
+    res = "AIS_Whitelist_Read(pass:%s): size= %d >%s\n" % (PASS,white_list_size,dl_status2str(dev.status))        
+    return active_device() + res + (white_list.value if white_list.value else "")
                  
   
 def blacklist_read():   
@@ -165,11 +167,9 @@ def blacklist_read():
         list_size = len(str_black_list.value)    
     res = "AIS_Blacklist_Read(pass:%s): black_list(size= %d | %s) > %s\n" % (PASS,list_size,str_black_list.value,dl_status2str(dev.status))        
     if dev.status and  black_list_size.value <= 0:        
-        return res  
+        return active_device() + res  
     return active_device() + res + str_black_list.value
-         
-    
-                                           
+                                       
 
 def blacklist_write(black_list_write):
     dev              = DEV_HND
@@ -205,23 +205,28 @@ def dev_list():
             list_init = True
         print"checking...please wait..."       
         devCount = AISUpdateAndGetCount()
-        print("AIS_List_UpdateAndGetCount()= [%d]\n" % (devCount))        
+        dc = ("AIS_List_UpdateAndGetCount()= [%d]\n" % (devCount))        
         if devCount:
-            print GetListInformation()
-            AISOpen()
+            list_info = GetListInformation()
+            print list_info
+            #AISOpen()
             dev.hnd = HND_LIST[0]                
-            print active_device()
+            #print active_device()
         else:
-            print("NO DEVICE FOUND")
+            list_info = "NO DEVICE FOUND"
+            print list_info
+        
+        return dc,list_info
             
             
 def DoCmd():    
     dev = DEV_HND
     dev.print_percent_hdr = True    
-    while True:
-        if not MainLoop():
+    while True:        
+        bo,rte = MainLoop()
+        if bool(bo) == False:
             break        
-        if dev.cmdResponses !=0:
+        if dev.cmdResponses != 0:
             break
   
             
@@ -230,22 +235,22 @@ def log_get():
     dev.status = mySO.AIS_GetLog(dev.hnd,PASS)
     res = wr_status('AIS_GetLog()',dev.status)        
     if dev.status != 0:
-        return res   
-    DoCmd()
-    log = PrintLOG() 
-    return active_device() + \
-           res + log
+        return active_device() + res   
+    DoCmd() 
+    log = PrintLOG()    
+    return active_device() + res + log
+               
     
 def log_by_index(start_index,stop_index):   
     dev         = DEV_HND          
     dev.status  = mySO.AIS_GetLogByIndex(dev.hnd,PASS,start_index,stop_index)        
     res = "AIS_GetLogByIndex:(pass: %s [ %d - %d ] >> %s)\n" % (PASS,start_index,stop_index,E_ERROR_CODES[dev.status])    
     if dev.status != 0:
-        return res
+        return active_device() + res
     DoCmd()    
     log = PrintLOG()
-    return active_device() + \
-           res + log
+    return active_device() + res + log
+           
     
     
 def log_by_time(start_time,end_time): 
@@ -258,9 +263,11 @@ def log_by_time(start_time,end_time):
         return active_device() + res
     DoCmd()    
     log = PrintLOG()  
-    return active_device() + \
-           res + log
+    return active_device() + res + log
+           
     
+
+
 def get_unread_log_one(choise):
     log_available = c_uint32()
     r_log         = c_int   
@@ -274,15 +281,14 @@ def get_unread_log_one(choise):
             
         r_log = mySO.AIS_ReadRTE_Count(dev.hnd)
         if r_log:
-            res_rrte = "\nAIS_ReadRTE_Count() %d\n" % r_log        
-        
+            res_rrte = "\nAIS_ReadRTE_Count() %d\n" % r_log                
         return res_log + res_rrte
               
                  
-    def u_log_count():       
-        MainLoop()
-        return  active_device() + \
-               "LOG unread (incremental) = %d\n" % dev.UnreadLog
+    def u_log_count():            
+        MainLoop()               
+        return dev.UnreadLog 
+               
         
         
     def u_log_get():
@@ -295,7 +301,7 @@ def get_unread_log_one(choise):
         nfcUid       = (c_uint8 * NFC_UID_MAX_LEN)()
         nfcUidLen    = c_int()
         timeStamp    = c_uint64() 
-        nfcUid       = str()
+        nfc_uid       = str()
         
         log_header = rte_list_header[0] + '\n' + \
                      rte_list_header[1] + '\n' + \
@@ -311,26 +317,52 @@ def get_unread_log_one(choise):
                                             byref(nfcUidLen),
                                             byref(timeStamp)
                                            )
-        if dev.status:            
-            return 
-        nfcuid = ''    
-        for i in range(0,nfcUidLen.value):                
-            nfcuid += ":%02X" % nfcUid[i]
-            
-        uid_uid_len = '[' + str(nfcUidLen.value) + '] | ' + nfcuid 
-        log_get_res += rte_format.format (logIndex.value,                                     
-                                 dbg_action2str(logAction.value),
-                                 logReaderId.value,
-                                 logCardId.value,
-                                 logSystemId.value,
-                                 #uidUidLen,#nfc_uid + nfc_uid_len                                    
-                                 uid_uid_len,
-                                 timeStamp.value,
-                                 time.ctime(timeStamp.value)
-                                    )                            
+     
+        if dev.status:                                
+            return str(dev.status) 
         
-        res = log_get_res + '\n' + rte_list_header[2]  + '\n'                                        
-        return active_device() + log_header + res + wr_status("AIS_UnreadLOG_Get()",dev.status) 
+      
+        nfc_uid = ""           
+        for i in range(nfcUidLen.value):                
+            nfc_uid += ":%0.2X" % nfcUid[i]
+                
+        uid_uid_len = '[' + str(nfcUidLen.value) + '] | ' + nfc_uid 
+        
+        
+        dev.log.log_index       = logIndex.value
+        dev.log.log_action      = logAction.value
+        dev.log.log_reader_id   = logReaderId.value
+        dev.log.log_card_id     = logCardId.value
+        dev.log.log_system_id   = logSystemId.value
+        dev.log.log_nfc_uid     = nfcUid
+        dev.log.log_nfc_uid_len = nfcUidLen.value
+        dev.log.log_timestamp   = timeStamp.value
+        
+        
+        
+        log_get_res += rte_format.format (logIndex.value,                                     
+                                         dbg_action2str(logAction.value),
+                                         logReaderId.value,
+                                         logCardId.value,
+                                         logSystemId.value,
+                                         #uidUidLen,#nfc_uid + nfc_uid_len                                    
+                                         uid_uid_len,
+                                         timeStamp.value,
+                                         time.ctime(timeStamp.value)
+                                    )                            
+       
+        
+        
+        
+        res = log_get_res + '\n' + rte_list_header[2]  + '\n'
+        
+        if GetBaseName() == AIS_SHELL:
+            print log_header
+            print res
+            print wr_status("AIS_UnreadLOG_Get()",dev.status)
+            return
+        
+        return log_header + res + wr_status("AIS_UnreadLOG_Get()",dev.status)
                
         
         
@@ -339,9 +371,9 @@ def get_unread_log_one(choise):
         rec_to_ack = RECORDS_TO_ACK
         dev.status = mySO.AIS_UnreadLOG_Ack(dev.hnd,rec_to_ack)
         res = wr_status("AIS_UnreadLOG_Ack()",dev.status)
-        # if dev.status:
-            # return
-        return active_device() + res 
+        if dev.status:
+             return
+        return res 
      
     if choise == 1:
        return u_log_count()
@@ -382,7 +414,10 @@ def lock_open():
     return active_device() + \
            res + wr_status("AIS_LockOpen()",dev.status)
         
-    
+ 
+
+
+ 
  
 def edit_device_list(choise,f_name=None,deviceType=0,deviceId=0):    
     dev_name  = c_char_p()
@@ -482,7 +517,7 @@ def password_set_default(new_pass):
  
 def PrintLOG():
         pass
-        rte_res      = ""         
+        rte_res,res  = "",""
         logIndex     = c_int()
         logAction    = c_int()
         logReaderId  = c_int()
@@ -523,9 +558,9 @@ def PrintLOG():
             if dev.status != 0:
                 break
             
-            nfcuid = '' 
+            nfc_uid = '' 
             for i in range(0,dev.log.log_nfc_uid_len):                
-                nfcuid += ":%02X" % (dev.log.log_nfc_uid[i])
+                nfc_uid += ":%02X" % (dev.log.log_nfc_uid[i])
             
             uidNfcUidLen = '[' + str(dev.log.log_nfc_uid_len) + '] | ' + nfcuid  
           
@@ -542,10 +577,14 @@ def PrintLOG():
                                     time.ctime(dev.log.log_timestamp)
                                    )
                  )
+                 
+         
+                 
+                 
        
             res = rte_res + rte_list_header[2] + '\n'
-        return  rte_hed + \
-                res +  wr_status('AIS_GetLog()', dev.status)
+        return  rte_hed + res +  wr_status('AIS_GetLog()', dev.status)
+                
               
        
 
@@ -559,9 +598,9 @@ def RTEListen(max_sec):
     while (time.ctime(time.time()) < time.ctime(stop_time)) :
         for hnd in HND_LIST:
             dev.hnd = hnd            
-            r,rte = MainLoop()                       
-        print rte
-        time.sleep(THD_SLEEP)     
+            MainLoop()                       
+        #print rte
+        #time.sleep(THD_SLEEP)     
     print "End RTE listen"    
     
             
@@ -588,14 +627,26 @@ def ListDevices():
         AISEraseAllDevicesForCheck()        
         
         
-        deviceId = 1        
+        deviceId = 0        
         DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
         print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
             
-        deviceId = 3        
-        DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
-        print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
+        # deviceId = 2        
+        # DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
+        # print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
         
+        # deviceId = 1        
+        # DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
+        # print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
+            
+        # deviceId = 3        
+        # DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
+        # print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
+        
+        
+
+
+
         print("AIS_List_GetDevicesForCheck() AFTER LIST UPDATE : \n%s" % ( AISGetDevicesForCheck()))
 
 
@@ -614,12 +665,14 @@ def GetListInformation():
         systemStatus   = c_int()    
         
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'
-      
-        devCount =  AISUpdateAndGetCount()                 
-        del HND_LIST[:]   
-        
+                   
+        devCount =  mySO.AIS_List_UpdateAndGetCount() 
+                                 
        
-        
+        del HND_LIST[:]        
+        #for i in HND_LIST:HND_LIST.remove(i)
+            
+            
         for i in range(0,devCount):                             
             DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
                                                      byref(devSerial),
@@ -631,8 +684,16 @@ def GetListInformation():
                                                      byref(devOpened),
                                                      byref(devStatus),
                                                      byref(systemStatus)
-                                                    )            
-            HND_LIST.append(hnd.value)                                 
+                                                    ) 
+                                                               
+            if DL_STATUS != 0:                
+                return                
+                                        
+            HND_LIST.append(hnd.value)
+            AISOpen()
+                
+            
+            
             res_1 += (mojFormat.format(i+1,
                                    hnd.value,
                                    devSerial.value.decode("utf-8"),
@@ -646,14 +707,14 @@ def GetListInformation():
                                    systemStatus.value
                                    )
                 )
-                              
-            res  = res_1 + format_grid[0]
+                                      
+        res  = res_1 + format_grid[0]
         return res_0 + res
     
     
 def PrintRTE():
         
-        rte_head,res_rte = "","" 
+        rte_head,res_rte,res = "","","" 
         
         logIndex     = c_int()
         logAction    = c_int()
@@ -663,7 +724,7 @@ def PrintRTE():
         nfcUid       = (c_uint8 * NFC_UID_MAX_LEN)()
         nfcUidLen    = c_int()
         timeStamp    = c_uint64() 
-        nfcUid       = str()
+        nfc_uid      = str()
         rteCount     = c_int
         dev          = DEV_HND
         rte_count    =  mySO.AIS_ReadRTE_Count(dev.hnd)
@@ -671,8 +732,8 @@ def PrintRTE():
         rte_head = "AIS_ReadRTE_Count = %d\n" % rte_count        
         rte_head = "= RTE Real Time Events = \n"       
         rte_head = rte_list_header[0]  + '\n' + \
-                    rte_list_header[1] + '\n' + \
-                    rte_list_header[2] + '\n'
+                   rte_list_header[1] + '\n' + \
+                   rte_list_header[2] + '\n'
                 
         while True:                
             DL_STATUS =  mySO.AIS_ReadRTE(dev.hnd,
@@ -695,15 +756,15 @@ def PrintRTE():
             dev.log.log_nfc_uid_len = nfcUidLen.value
             dev.log.log_timestamp   = timeStamp.value
             
-            
+                                                
             
             if  DL_STATUS != 0:            
                 break  
-            nfcuid = ''    
+            nfc_uid = ''    
             for i in range(0,dev.log.log_nfc_uid_len):                
-                nfcuid += ":%02X" % dev.log.log_nfc_uid[i]
+                nfc_uid += ":%02X" % dev.log.log_nfc_uid[i]
             
-            uid_uid_len = '[' + str(dev.log.log_nfc_uid_len) + '] | ' + nfcuid 
+            uid_uid_len = '[' + str(dev.log.log_nfc_uid_len) + '] | ' + nfc_uid 
             
             res_rte += rte_format.format (dev.log.log_index,                                     
                                      dbg_action2str(dev.log.log_action),
@@ -713,7 +774,8 @@ def PrintRTE():
                                      uid_uid_len,#nfc_uid + nfc_uid_len                                    
                                      dev.log.log_timestamp,
                                      time.ctime(dev.log.log_timestamp)
-                                    )  
+                                    ) 
+                         
                                        
             res = res_rte + '\n' + rte_list_header[2] + '\n'       
         return rte_head + res + \
@@ -723,7 +785,8 @@ def PrintRTE():
     
 
 def MainLoop():
-        rte = ""                      
+        rte = "" 
+        rte_dict = ""    
         real_time_events  = c_int()
         log_available     = c_int()
         unreadLog         = c_int()
@@ -732,8 +795,7 @@ def MainLoop():
         device_status     = c_int()
         time_out_occurred = c_int()
         _status           = c_int()
-        
-       
+               
         dev               = DEV_HND         
         dev.status        =  mySO.AIS_MainLoop(dev.hnd,
                                              byref(real_time_events),
@@ -756,11 +818,14 @@ def MainLoop():
         dev.Status          = _status.value
          
         if dev.status:                            
-            return False           
+            return str(dev.status),None
         
-        if dev.RealTimeEvents:                 
+        if dev.RealTimeEvents:                   
             rte = PrintRTE()
-        
+            if GetBaseName() == AIS_SHELL:
+                print "".join(rte)
+            
+            
         if dev.LogAvailable:
             print("LOG= %d\n" % dev.LogAvailable)
             PrintLOG()
@@ -788,11 +853,10 @@ def MainLoop():
         
         if dev.cmdResponses:            
             print "\n-- COMMAND FINISH !\n"
-        
-       
-       
+    
         return True,rte
     
+
 def TestLights(light_choise):               
         l = {'green_master': False,
              'red_master'  : False,
@@ -810,6 +874,7 @@ def TestLights(light_choise):
 def init():           
     print AISGetLibraryVersionStr()     
     dev_list()        
+    active_device() 
     print ShowMeni()
     
 
@@ -840,7 +905,7 @@ def ShowMeni():  #q,d,o,c,d,t,T,E,p,l,n,N,w,W,b,B,r,g,R,G,v,F,i,m,x,u
 def MeniLoop():        
         m_char = sys.stdin.read(1) 
         dev    = DEV_HND    
-        if m_char.isdigit(): 
+        if m_char.isdigit() and len(HND_LIST)>=int(m_char): 
             dev.hnd = HND_LIST[int(m_char) -1]    
             dev.idx = HND_LIST.index(dev.hnd)        
             print active_device()
