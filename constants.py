@@ -1,7 +1,8 @@
 
 
-SHELL_LIB_PATH  = '/lib/testing/ver.4.9.6/' #<--vrati za shell samo
-HTTP_LIB_PATH   = '/shell/lib/testing/ver.4.9.6/' 
+SHELL_LIB_PATH    = '/lib/testing/ver.4.9.6/' #<--vrati za shell samo
+HTTP_LIB_PATH     = '/shell/lib/testing/ver.4.9.6/' 
+AIS_MAIN_LIB_PATH = '/web_api/shell/lib/testing/ver.4.9.6/'
 
 AIS_SHELL       = 'ais_shell.py'
 AIS_HTTP        = 'ais_http.py'
