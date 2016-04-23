@@ -1,4 +1,4 @@
-from ctypes import c_int,c_uint8,c_uint32,c_uint64,c_void_p,c_bool,c_long
+from ctypes import c_int,c_uint8,c_uint32,c_uint64,c_void_p,c_bool,c_long,c_char_p
 
 NFC_UID_MAX_LEN       = 10
 
@@ -17,9 +17,11 @@ class S_LOG:
 class S_DEVICE:
     idx               = c_int(),
     hnd               = c_void_p()
-    print_percent_hdr = c_bool(),
-    percent_old       = c_int(),
+    open              = c_int(),
     status            = c_long(),
+    status_last       = c_long(),    
+    SN                = c_char_p()
+    ID                = c_int()
     RealTimeEvents    = c_int(),
     LogAvailable      = c_int(),
     UnreadLog         = c_int(),
@@ -31,8 +33,10 @@ class S_DEVICE:
     Status            = c_int(),
     relay_state       = c_uint32(),
     log               = S_LOG()
+    cmd_finish        = c_bool()
     
-    
+    # print_percent_hdr = c_bool(),
+    # percent_old       = c_int(),
 
         
     

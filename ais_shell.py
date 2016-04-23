@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 2.0.2.0  (lib:4.9.6)    
+@version  : 3.0.0.0  (lib:4.9.9.2)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -13,18 +13,32 @@ import sys
 import time
 from platform import platform
 from ctypes import *
+import pdb
+
 from constants import *
 from dl_status import *
 from ais_readers_list import *
 import device_list 
 
 
+class S_PROGRESS(Structure):
+    _fields_ = [("print_hdr",c_bool),
+                ("percent_old",c_int)]
+    
+progress = S_PROGRESS(True,-1)    
+
+    
+    
 DL_STATUS = E_ERROR_CODES
 HND_LIST  = []
 HND_AIS   = c_void_p()    
 devCount  = c_long()  
 DEV_HND   = device_list .S_DEVICE()
 log_t     = device_list .S_LOG()
+
+
+
+
 
 def GetBaseName():
     return os.path.basename(sys.argv[0])
@@ -58,8 +72,14 @@ def AISGetVersion():
         
     
     
-def AISUpdateAndGetCount():            
-        return mySO.AIS_List_UpdateAndGetCount()
+def AISUpdateAndGetCount():                    
+        device_count = c_int()
+        list_up_gc = mySO.AIS_List_UpdateAndGetCount
+        list_up_gc.argtype = c_int
+        list_up_gc.restype = c_int
+        result  = list_up_gc(byref(device_count))        
+        return device_count.value
+
     
 def AISOpen():       
         dev = DEV_HND
@@ -147,6 +167,35 @@ def active_device():
     return res    
    
 
+def print_percent(Percent):
+    if progress.print_hdr:
+        print_percent_hdr()
+        progress.print_hdr = False
+        progress.percent_old = -1
+    
+    while (progress.percent_old != Percent):
+        if progress.percent_old < 100:
+            sys.stdout.write(".")
+        progress.percent_old += 1
+        
+    
+def ee_lock(dev = DEV_HND):
+    dev.status = mySO.AIS_EE_WriteProtect(dev.hnd,PASS)
+    wr_status("EEPROM Lock - AIS_EE_WriteProtect()",dev.status)
+    
+def ee_unlock(dev = DEV_HND):
+    dev.status = AIS_EE_WriteUnProtect(dev.hnd,PASS)
+    wr_status("EEPROM Unlock - AIS_EE_WriteUnProtect()",dev.status)
+    
+
+
+
+
+    
+   
+   
+   
+   
 def whitelist_read():       
     white_list_size = c_int()
     white_list      = c_char_p()    
@@ -223,13 +272,28 @@ def dev_list():
             
 def DoCmd():    
     dev = DEV_HND
-    dev.print_percent_hdr = True    
-    while True:        
-        bo,rte = MainLoop()
-        if bool(bo) == False:
-            break        
-        if dev.cmdResponses != 0:
+    if dev.status:
+        return
+        
+    dev.cmd_finish = False    
+    progress.print_hdr = True    
+    
+    #while not dev.cmd_finish:        
+        # bo,rte = MainLoop()
+        # if bool(bo) == False:
+            # break        
+        # if dev.cmdResponses != 0:
+            # break
+    #    if not MainLoop():
+    #        break
+
+    while True:
+        if not MainLoop():
             break
+        if not dev.cmd_finish:
+            break
+            
+            
   
             
 def log_get():    
@@ -668,7 +732,8 @@ def GetListInformation():
         
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'
                    
-        devCount =  mySO.AIS_List_UpdateAndGetCount() 
+        devCount  =  AISUpdateAndGetCount()                        
+ 
                                  
        
         del HND_LIST[:]        
@@ -787,8 +852,13 @@ def PrintRTE():
     
 
 def MainLoop():
+        
+        dev               = DEV_HND
+        if not dev:
+            return False,None
+            
         rte = "" 
-        rte_dict = ""    
+        rte_dict = ""            
         real_time_events  = c_int()
         log_available     = c_int()
         unreadLog         = c_int()
@@ -798,7 +868,7 @@ def MainLoop():
         time_out_occurred = c_int()
         _status           = c_int()
                
-        dev               = DEV_HND         
+                 
         dev.status        =  mySO.AIS_MainLoop(dev.hnd,
                                              byref(real_time_events),
                                              byref(log_available),
@@ -819,11 +889,20 @@ def MainLoop():
         dev.TimeoutOccurred = time_out_occurred.value
         dev.Status          = _status.value
          
-        if dev.status:                            
+        
+         
+        if dev.status !=0:
+            if (dev.status_last != dev.status): 
+                wr_status("MainLoop()",dev.status)
+                dev.status_last = dev.status
+
             return str(dev.status),None
         
         if dev.RealTimeEvents:                   
             rte = PrintRTE()
+            
+            print rte
+            
             if GetBaseName() == AIS_SHELL:
                 print "".join(rte)
             
@@ -833,7 +912,7 @@ def MainLoop():
             PrintLOG()
         
         
-        if dev.UnreadLog_last <> dev.UnreadLog:                                
+        if dev.UnreadLog_last != dev.UnreadLog:                                
                    # print "LOG unread (incremental) = %d" % dev.UnreadLog                 
                     dev.UnreadLog_last = dev.UnreadLog
                     
@@ -841,24 +920,64 @@ def MainLoop():
         if dev.TimeoutOccurred:
             print("TimeoutOccurred= %d\n" % dev.TimeoutOccurred)  
             
-            
+        if dev.Status:        
+            if GetBaseName() == AIS_SHELL:
+                print "[%d] local_status= %s\n" % (dev.idx,dl_status2str(dev.Status))
+                
+     
         if dev.cmdPercent:
-            if dev.print_percent_hdr:
-                print_percent_hdr()
-                dev.percent_old = -1
-                dev.print_percent_hdr = False
-            
-            while (dev.percent_old != dev.cmdPercent):
-                if dev.percent_old < 100:
-                    sys.stdout.write(".")                    
-                    dev.percent_old +=1
+           print_percent(dev.cmdPercent)
         
         if dev.cmdResponses:            
             print "\n-- COMMAND FINISH !\n"
+            dev.cmd_finish = True
     
         return True,rte
+ 
+
+
+ 
+ 
+def config_file_rd(dev = DEV_HND):
+    
+    
+    if not dev:
+        return
+    
+    file_name = "BaseHD-%s-ID%d-" % (dev.SN.value,dev.ID.value)
+    
+    print file_name
+    
+    localtime = time.localtime(time.time())
+    file_name = file_name + time.strftime("%Y%m%d_%H%M%S",localtime)
+    
+    file_name.__add__ (".config") 
+    
+    if GetBaseName() == AIS_SHELL:
+        print "Read configuration from the device - to the file"
+        print "Config file - enter for default [%s] : " % file_name
+        sys.stdin.read()
+        get_new_name = raw_input(file_name)
+        if not get_new_name:
+            print "No valid file name"
+            return
+        
+        if get_new_name != '\n':
+            file_name = get_new_name
+            
+        print "AIS_Config_Read(file: %s)\n" % file_name
+        dev.status = AIS_Config_Read(dev.hnd,PASS,file_name)
+        wr_status("AIS_Config_Read",dev.status)    
     
 
+# def config_file_wr(dev = DEV_HND):
+    # file_name = "BaseHD-xxx.config"
+    # #if run ais_shell.py
+    # if GetBaseName() == AIS_SHELL:
+        # print "Store configuration from file to the device"
+        # print "Config file - enter for default [%s] : " % file_name
+    
+    
 def TestLights(light_choise):               
         l = {'green_master': False,
              'red_master'  : False,
@@ -883,7 +1002,7 @@ def init():
 
 
                 
-def ShowMeni():  #q,d,o,c,d,t,T,E,p,l,n,N,w,W,b,B,r,g,R,G,v,F,i,m,x,u
+def ShowMeni():  #q,d,o,c,d,t,T,E,p,l,n,N,w,W,b,B,r,g,R,G,F,i,m,x,u
         my_meni = """
         
         --------------------------
@@ -894,8 +1013,9 @@ def ShowMeni():  #q,d,o,c,d,t,T,E,p,l,n,N,w,W,b,B,r,g,R,G,v,F,i,m,x,u
         l : Get log\t\t\t\tn : Get log by Index\t\t\tN : Get log by Time       
         u : Get unread log\t\t\tw : White-list Read\t\t\tW : White-list Write                       
         b : Black-list Read\t\t\tB : Black-list Write\t\t\tL : Test Lights
-        g : Get IO state\t\t\tG : Open gate/lock\t\t\ty : Relay toggle state 
-        v : Get Library Version\t\t\tf : Get Firmware Version\t\ti : Device Information        
+        g : Get IO state\t\t\tG : Open gate/lock\t\t\ty : Relay toggle state
+        E : EERPOM LOCK\t\t\t\te : EERPOM UNLOCK\t\t\tF : Firmware update       
+        s : Settings read to file\t\tS : Settings write from file\t\ti : Device Information        
         m : Meni\t\t\t\tQ : Edit device list for checking                       
         x : EXIT 
         --------------------------
@@ -1136,6 +1256,12 @@ def MeniLoop():
        
         elif m_char == 'm':
             print(ShowMeni())
+            
+            
+            
+            
+        elif m_char == 's':
+            config_file_rd()
          
         return True
   
