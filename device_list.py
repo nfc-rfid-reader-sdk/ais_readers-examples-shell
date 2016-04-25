@@ -16,7 +16,7 @@ class S_LOG:
 
 class S_DEVICE:
     idx               = c_int(),
-    hnd               = c_void_p()
+    hnd               = c_void_p(),
     open              = c_int(),
     status            = c_long(),
     status_last       = c_long(),    

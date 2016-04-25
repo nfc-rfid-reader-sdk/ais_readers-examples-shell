@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.0.0.0  (lib:4.9.9.2)    
+@version  : 3.0.0.1  (lib:4.9.9.2)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -14,6 +14,7 @@ import time
 from platform import platform
 from ctypes import *
 import pdb
+import threading
 
 from constants import *
 from dl_status import *
@@ -168,14 +169,17 @@ def active_device():
    
 
 def print_percent(Percent):
-    if progress.print_hdr:
+
+    
+
+    if progress.print_hdr == True:
         print_percent_hdr()
         progress.print_hdr = False
         progress.percent_old = -1
-    
+                   
     while (progress.percent_old != Percent):
         if progress.percent_old < 100:
-            sys.stdout.write(".")
+            sys.stdout.write(".")           
         progress.percent_old += 1
         
     
@@ -270,39 +274,32 @@ def dev_list():
         return dc,list_info
             
             
-def DoCmd():    
-    dev = DEV_HND
+def DoCmd(dev):    
+    #dev = DEV_HND
     if dev.status:
         return
         
     dev.cmd_finish = False    
     progress.print_hdr = True    
-    
-    #while not dev.cmd_finish:        
-        # bo,rte = MainLoop()
-        # if bool(bo) == False:
-            # break        
-        # if dev.cmdResponses != 0:
-            # break
-    #    if not MainLoop():
-    #        break
-
-    while True:
-        if not MainLoop():
+      
+    while (not dev.cmd_finish):
+        if not MainLoop(dev):
             break
-        if not dev.cmd_finish:
-            break
+       
             
             
   
             
-def log_get():    
-    dev        = DEV_HND         
+def log_get(_dev = DEV_HND):    
+  
+    dev = DEV_HND
+    
     dev.status = mySO.AIS_GetLog(dev.hnd,PASS)
     res = wr_status('AIS_GetLog()',dev.status)        
     if dev.status != 0:
         return active_device() + res   
-    DoCmd() 
+    DoCmd(dev)
+    
     log = PrintLOG()    
     return active_device() + res + log
                
@@ -740,7 +737,11 @@ def GetListInformation():
         #for i in HND_LIST:HND_LIST.remove(i)
             
             
-        for i in range(0,devCount):                             
+        for i in range(0,devCount):
+
+            dev = DEV_HND
+           
+            
             DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
                                                      byref(devSerial),
                                                      byref(devType),
@@ -758,18 +759,22 @@ def GetListInformation():
                                         
             HND_LIST.append(hnd.value)
             AISOpen()
-                
             
+            dev.idx = i + 1            
+            dev.hnd  = hnd.value
+            dev.SN   = devSerial.value.decode("utf-8")
+            dev.ID   = devID.value
+            dev.open = devOpened.value
             
-            res_1 += (mojFormat.format(i+1,
-                                   hnd.value,
-                                   devSerial.value.decode("utf-8"),
+            res_1 += (mojFormat.format(dev.idx,
+                                   dev.hnd,
+                                   dev.SN,
                                    devType.value,
-                                   devID.value,
+                                   dev.ID,
                                    devFW_VER.value,
                                    devCommSpeed.value,
                                    devFTDI_Serial.value.decode("utf-8"),
-                                   devOpened.value,
+                                   dev.open,
                                    devStatus.value,
                                    systemStatus.value
                                    )
@@ -851,9 +856,9 @@ def PrintRTE():
        
     
 
-def MainLoop():
+def MainLoop(dev):
         
-        dev               = DEV_HND
+        #dev               = DEV_HND
         if not dev:
             return False,None
             
@@ -935,48 +940,61 @@ def MainLoop():
         return True,rte
  
 
-
- 
- 
-def config_file_rd(dev = DEV_HND):
+def fw_update(dev = DEV_HND):
+    if GetBaseName() == AIS_SHELL:
+        print "Flashing firmware part."
+        print "Flash firmware for selected device."
+        sys.stdin.read(1)
+        fw_name = raw_input("Enter full firmware BIN filename: ")
+        if len(fw_name) == 0:
+            print"Error while getting file name !"
+            return
+        progress.print_hdr = True
+        dev.status = mySO.AIS_FW_Update(dev.hnd,fw_name,0)
+        print "\nAIS_FW_Update(%s)> %s\n" % (fw_name, dl_status2str(dev.status))
     
-    
+ 
+def config_file_rd(dev = DEV_HND):    
     if not dev:
         return
     
-    file_name = "BaseHD-%s-ID%d-" % (dev.SN.value,dev.ID.value)
-    
-    print file_name
-    
+    file_name = "BaseHD-%s-ID%d-" % (dev.SN,dev.ID)   
     localtime = time.localtime(time.time())
-    file_name = file_name + time.strftime("%Y%m%d_%H%M%S",localtime)
-    
-    file_name.__add__ (".config") 
-    
+    file_name = file_name + time.strftime("%Y%m%d_%H%M%S",localtime)    
+    file_name.__add__ (".config")     
     if GetBaseName() == AIS_SHELL:
         print "Read configuration from the device - to the file"
         print "Config file - enter for default [%s] : " % file_name
-        sys.stdin.read()
-        get_new_name = raw_input(file_name)
-        if not get_new_name:
-            print "No valid file name"
-            return
-        
-        if get_new_name != '\n':
-            file_name = get_new_name
-            
-        print "AIS_Config_Read(file: %s)\n" % file_name
-        dev.status = AIS_Config_Read(dev.hnd,PASS,file_name)
-        wr_status("AIS_Config_Read",dev.status)    
+        sys.stdin.read(1)
+        fname = raw_input()
+        if not fname  == '\n':
+            fname = file_name 
+        if not fname:
+            if GetBaseName() == AIS_SHELL:
+                print "No valid file name"
+                return                                    
+        print "AIS_Config_Read(file: %s)" % fname
+        dev.status = mySO.AIS_Config_Read(dev.hnd,PASS,fname.encode())
+        print wr_status("AIS_Config_Read",dev.status)    
     
 
-# def config_file_wr(dev = DEV_HND):
-    # file_name = "BaseHD-xxx.config"
-    # #if run ais_shell.py
-    # if GetBaseName() == AIS_SHELL:
-        # print "Store configuration from file to the device"
-        # print "Config file - enter for default [%s] : " % file_name
-    
+         
+def config_file_wr(dev = DEV_HND):
+    file_name = "BaseHD-xxx.config"    
+    if GetBaseName() == AIS_SHELL:
+        print "Store configuration from file to the device"
+        print "Config file - enter for default [%s] : " % file_name
+        sys.stdin.read(1)
+        fname = raw_input()
+        if not fname  == '\n':
+            fname = file_name
+        if not fname:
+            if GetBaseName() == AIS_SHELL:
+                print "No valid file name"
+                return                                     
+        print "AIS_Config_Send(file: %s)" % fname
+        dev.status = mySO.AIS_Config_Send(dev.hnd,fname.encode())        
+        print wr_status("AIS_Config_Send",dev.status) 
     
 def TestLights(light_choise):               
         l = {'green_master': False,
@@ -989,15 +1007,59 @@ def TestLights(light_choise):
         dev       = DEV_HND     
         DL_STATUS = mySO.AIS_LightControl(dev.hnd,l['green_master'],l['red_master'],l['green_slave'],l['red_slave'])
         return active_device() + "AIS_LightControl(master:green= %d | master:red= %d || slave:green= %d | slave:sred= %d) > %s\n" %  (l['green_master'],l['red_master'],l['green_slave'],l['red_slave'],E_ERROR_CODES[ DL_STATUS])
-               
-  
+
+
+        
+        
+def thread_main_loop():
+    while not shut_event.is_set():
+        my_lock.acquire()
+        #active_device()
+        dev     = DEV_HND
+        dev.idx = HND_LIST.index(dev.hnd) 
+        dev.idx +=1 
+        MainLoop(dev)
+        my_lock.release()
+        
+def thread_meni_loop():
+    while not shut_event.is_set():
+        my_lock.acquire()
+        MeniLoop()
+        my_lock.release()
+        
+ 
+def thread_loop_all():    
+    t_main_loop = threading.Thread(target=thread_main_loop)
+    t_meni_loop = threading.Thread(target=thread_meni_loop)
+    t_main_loop.start()
+    t_meni_loop.start()
+    while True:
+        try:
+            if t_main_loop.isAlive():
+                t_main_loop.join(timeout=.5)
+            if t_meni_loop.isAlive():
+                t_meni_loop.join(timeout=.5)                
+        
+        except (KeyboardInterrupt,SystemExit) as E:
+            shut_event.set()
+            if sys.platform.startswith('linux'):
+                os.system('pkill -9 python')
+            elif sys.platform.startswith('win'):            
+                sys.exit(0)
+            
+        
+        
+
+my_lock = threading.Lock()
+shut_event = threading.Event()
+ 
 
 def init():           
     print AISGetLibraryVersionStr()     
     dev_list()        
-    active_device() 
+    print active_device() 
     print ShowMeni()
-    
+    thread_loop_all()
 
 
 
@@ -1035,6 +1097,11 @@ def MeniLoop():
         if m_char == 'x': 
             print 'EXIT\n'
             AISClose()
+            shut_event.set()
+            if sys.platform.startswith('linux'):
+                os.system('pkill -9 python')
+            elif sys.platform.startswith('win'):            
+                sys.exit(0)
             return False 
         
         
@@ -1256,12 +1323,16 @@ def MeniLoop():
        
         elif m_char == 'm':
             print(ShowMeni())
-            
-            
-            
-            
+                             
         elif m_char == 's':
             config_file_rd()
+         
+        elif m_char == 'S':
+            config_file_wr()
+            
+        elif m_char == 'F':
+            fw_update()
+            
          
         return True
   
@@ -1269,7 +1340,7 @@ def MeniLoop():
 #================ helper functions ===================
     
 def wr_status(funct_name,dl_status):
-    res = funct_name + ': {%d(%s): %s}\n' % (dl_status,hex(dl_status),E_ERROR_CODES[dl_status])    
+    res = funct_name + ': {%d(0x%X): %s}\n' % (dl_status,dl_status,E_ERROR_CODES[dl_status])    
     return res
         
 # def dbg_action2str(action_value):    
@@ -1346,9 +1417,9 @@ if __name__ == '__main__':
     #mySO = GetPlatformLib() 
     
     init() 
-    while True:
-        if not MeniLoop():
-            break
+    # while True:
+        # if not MeniLoop():
+            # break
           
     if sys.platform.startswith('linux'):
         os.system('pkill -9 python')
