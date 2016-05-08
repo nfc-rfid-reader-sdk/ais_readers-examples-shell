@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.0.0.1  (lib:4.9.9.2)    
+@version  : 3.0.0.2  (lib:4.9.9.2)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -36,7 +36,7 @@ HND_AIS   = c_void_p()
 devCount  = c_long()  
 DEV_HND   = device_list .S_DEVICE()
 log_t     = device_list .S_LOG()
-
+MINIMAL_LIB_VERSION = "4.9.9.2"
 
 
 
@@ -188,7 +188,7 @@ def ee_lock(dev = DEV_HND):
     wr_status("EEPROM Lock - AIS_EE_WriteProtect()",dev.status)
     
 def ee_unlock(dev = DEV_HND):
-    dev.status = AIS_EE_WriteUnProtect(dev.hnd,PASS)
+    dev.status = mySO.AIS_EE_WriteUnProtect(dev.hnd,PASS)
     wr_status("EEPROM Unlock - AIS_EE_WriteUnProtect()",dev.status)
     
 
@@ -214,7 +214,7 @@ def whitelist_read():
                  
   
 def blacklist_read():   
-    list_size       = c_int()  
+    black_list_size       = c_int()  
     str_black_list  = c_char_p()      
     dev             = DEV_HND
     dev.status      = mySO.AIS_Blacklist_Read(dev.hnd,PASS,byref(str_black_list))
@@ -251,27 +251,25 @@ def print_percent_hdr():
         sys.stdout.write("\n%=")
   
     
-def dev_list():         
-        list_init = c_bool
-        list_init = False
-        dev       = DEV_HND
+def list_device(dev = DEV_HND):                 
+        list_init = False        
         if not list_init:
-            ListDevices()   #prepare device list
+            prepare_list_for_check()
+            #ListDevices()   #prepare device list
             list_init = True
+        
         print"checking...please wait..."       
         devCount = AISUpdateAndGetCount()
+                        
         dc = ("AIS_List_UpdateAndGetCount()= [%d]\n" % (devCount))        
+        print dc      
         if devCount:
             list_info = GetListInformation()
-            print list_info
-            #AISOpen()
-            dev.hnd = HND_LIST[0]                
-            #print active_device()
+            print list_info           
         else:
             list_info = "NO DEVICE FOUND"
-            print list_info
-        
-        return dc,list_info
+            print list_info        
+        #return dc,list_info
             
             
 def DoCmd(dev):    
@@ -683,8 +681,15 @@ def GetTime():
         print  AISGetTime()
      
 
+     
+     
+     
+     
 def ListDevices():
-            
+         
+        list_for_check_print()
+        
+                 
         deviceType = E_KNOWN_DEVICE_TYPES['DL_AIS_BASE_HD_SDK']               
         print("AIS_List_GetDevicesForCheck() BEFORE / DLL STARTUP : %s" % ( AISGetDevicesForCheck()))         
         AISEraseAllDevicesForCheck()        
@@ -702,9 +707,9 @@ def ListDevices():
         # DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
         # print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
             
-        # deviceId = 3        
-        # DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
-        # print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
+        deviceId = 3        
+        DL_STATUS =  AISAddDeviceForCheck(deviceType, deviceId) 
+        print("AIS_List_AddDeviceForCheck(type: %d, id: %d)> DL_STATUS{ %s }" % (deviceType,deviceId, DL_STATUS))
         
         
 
@@ -976,8 +981,95 @@ def config_file_rd(dev = DEV_HND):
         print "AIS_Config_Read(file: %s)" % fname
         dev.status = mySO.AIS_Config_Read(dev.hnd,PASS,fname.encode())
         print wr_status("AIS_Config_Read",dev.status)    
-    
 
+
+def add_device(device_type,device_id):
+    status = DL_STATUS
+    status = mySO.AIS_List_AddDeviceForCheck(device_type,device_id)
+    print "AIS_List_AddDeviceForCheck(type: %d, id: %d)> { %s }" % \
+			(int(device_type), int(device_id), dl_status2str(status))
+    
+    return (status if status else False)
+
+
+
+        
+def load_list_from_file():
+    list_fn        = "readers.ini"
+    added_dev_type = 0
+    #status = DL_STATUS
+    dev_type_enum  = c_char_p()
+    
+   
+   
+    if not os.path.isfile(list_fn):
+        if GetBaseName() == AIS_SHELL:
+            print "File <%s> not found. \n" % list_fn
+            return False
+            
+    with open(list_fn,"rt") as fini:
+        for line in fini:          
+            if not line.startswith('#') and not(line.startswith("\n")) :                                            
+                ll = line.split(":")
+                dev_type_str = ll[0]                                               
+                dev_id       = ll[1]           
+                status = mySO.device_type_str2enum(dev_type_str,byref(dev_type_enum))
+                
+                if status:
+                    continue
+                
+               
+                
+                if add_device(dev_type_enum,dev_id) == 0:
+                    added_dev_type += 1
+            
+    fini.close()                
+     
+    if (added_dev_type):
+        return True
+    print "Error. No device is added in the list...\n"    
+    return False
+ 
+
+def list_for_check_print():   
+    
+    rv = AISGetDevicesForCheck()    
+    if not rv:
+        return
+    if len(rv) == 0:
+        return      
+    
+    while True:
+        dev_type_str = c_char_p()
+        dev_type = c_int()
+        dev_id   = c_int()
+        r = rv.split(":")        
+        if  len(r) != 2:
+            break 
+        dev_type = int(r[0])
+        dev_id   = int(r[1])
+      
+        status = mySO.device_type_enum2str(dev_type,byref(dev_type_str))
+       
+        if status:
+            continue
+        print "   %20s (enum= %d) on ID %d\n" % (dev_type_str.value,dev_type,dev_id)
+       
+        if rv.endswith('\n'):
+            break
+        
+def prepare_list_for_check():
+    print "AIS_List_GetDevicesForCheck() BEFORE / DLL STARTUP"
+    list_for_check_print()
+    mySO.AIS_List_EraseAllDevicesForCheck()
+    
+    if not load_list_from_file():
+        print "Tester try to connect with a Base HD device on any/unkown ID"                       
+        add_device(E_KNOWN_DEVICE_TYPES ["DL_AIS_BASE_HD_SDK"],0)
+        
+    print "AIS_List_GetDevicesForCheck() AFTER LIST UPDATE"
+    list_for_check_print()
+  
          
 def config_file_wr(dev = DEV_HND):
     file_name = "BaseHD-xxx.config"    
@@ -1009,7 +1101,16 @@ def TestLights(light_choise):
         return active_device() + "AIS_LightControl(master:green= %d | master:red= %d || slave:green= %d | slave:sred= %d) > %s\n" %  (l['green_master'],l['red_master'],l['green_slave'],l['red_slave'],E_ERROR_CODES[ DL_STATUS])
 
 
-        
+def print_datatype_size():
+    print "-----------------------------------------"
+    print "Size of types:"
+    #print "\t<DL_STATUS> = %d B\n" % sizeof(DL_STATUS)
+    #print "\t<device_e>  = %d B\n" % sizeof(DEV_HND)
+    print "\t<HND_AIS>   = %d B" % sizeof(HND_AIS)
+    print "\t<c_bool>    = %d B" % sizeof(c_bool)
+    print "\t<c_int>     = %d B" % sizeof(c_int)
+    print "\t<c_char>    = %d B" % sizeof(c_char)
+    print "-----------------------------------------"
         
 def thread_main_loop():
     while not shut_event.is_set():
@@ -1054,12 +1155,13 @@ my_lock = threading.Lock()
 shut_event = threading.Event()
  
 
-def init():           
-    print AISGetLibraryVersionStr()     
-    dev_list()        
-    print active_device() 
+def init():  
+    print "Tester for 'ais_readers' dynamic library version %s and later" % MINIMAL_LIB_VERSION         
+    print AISGetLibraryVersionStr()
+    print_datatype_size()    
+    list_device()            
     print ShowMeni()
-    thread_loop_all()
+    #thread_loop_all()
 
 
 
@@ -1311,7 +1413,7 @@ def MeniLoop():
             print password_change(new_pass)
             
         elif m_char == 'P':
-            global PASS
+            #global PASS
             print "Actual application password is :%s " % PASS
             sys.stdin.read(1)
             new_pass = raw_input("Enter new default application password :")
@@ -1412,14 +1514,11 @@ log_format = "| {0:5d} | {1:32s} | {2:5d} | {3:7d} | {4:5d} | {5:24s} | {6:#10d}
 
 
 
-if __name__ == '__main__':      
-    #global mySO   
-    #mySO = GetPlatformLib() 
-    
+if __name__ == '__main__':        
     init() 
-    # while True:
-        # if not MeniLoop():
-            # break
+    while True:
+        if not MeniLoop():
+            break
           
     if sys.platform.startswith('linux'):
         os.system('pkill -9 python')
