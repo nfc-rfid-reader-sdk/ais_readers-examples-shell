@@ -29,6 +29,7 @@ class S_DEVICE:
     cmdResponses      = c_int(),
     cmdPercent        = c_int(),
     DeviceStatus      = c_int(),
+    DeviceStatus_last  = c_int(),
     TimeoutOccurred   = c_int(),
     Status            = c_int(),
     relay_state       = c_uint32(),

@@ -1,8 +1,8 @@
 
-LIB_VERSION       = "ver.4.9.9.2"
-SHELL_LIB_PATH    = "/lib/testing/" + LIB_VERSION
-HTTP_LIB_PATH     = "/shell/lib/testing/" + LIB_VERSION 
-AIS_MAIN_LIB_PATH = "/web_api/shell/lib/testing/" + LIB_VERSION
+#LIB_NAME       = "ver.4.9.10.3"
+SHELL_LIB_PATH    = "/lib/"
+HTTP_LIB_PATH     = "/shell/lib/" 
+AIS_MAIN_LIB_PATH = "/web_api/shell/lib/" 
 
 AIS_SHELL       = 'ais_shell.py'
 AIS_HTTP        = 'ais_http.py'

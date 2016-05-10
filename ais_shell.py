@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.0.0.2  (lib:4.9.9.2)    
+@version  : 3.1.0.0  (lib:4.9.10.4)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -13,7 +13,6 @@ import sys
 import time
 from platform import platform
 from ctypes import *
-import pdb
 import threading
 
 from constants import *
@@ -31,12 +30,13 @@ progress = S_PROGRESS(True,-1)
     
     
 DL_STATUS = E_ERROR_CODES
+DL_OK     = 0
 HND_LIST  = []
 HND_AIS   = c_void_p()    
 devCount  = c_long()  
 DEV_HND   = device_list .S_DEVICE()
 log_t     = device_list .S_LOG()
-MINIMAL_LIB_VERSION = "4.9.9.2"
+MINIMAL_LIB_VERSION = "4.9.9.3"
 
 
 
@@ -183,22 +183,17 @@ def print_percent(Percent):
         progress.percent_old += 1
         
     
-def ee_lock(dev = DEV_HND):
+def ee_lock():
+    dev = DEV_HND
     dev.status = mySO.AIS_EE_WriteProtect(dev.hnd,PASS)
-    wr_status("EEPROM Lock - AIS_EE_WriteProtect()",dev.status)
+    print wr_status("EEPROM Lock - AIS_EE_WriteProtect()",dev.status)
     
-def ee_unlock(dev = DEV_HND):
+def ee_unlock():
+    dev = DEV_HND
     dev.status = mySO.AIS_EE_WriteUnProtect(dev.hnd,PASS)
-    wr_status("EEPROM Unlock - AIS_EE_WriteUnProtect()",dev.status)
+    print wr_status("EEPROM Unlock - AIS_EE_WriteUnProtect()",dev.status)
     
 
-
-
-
-    
-   
-   
-   
    
 def whitelist_read():       
     white_list_size = c_int()
@@ -213,17 +208,18 @@ def whitelist_read():
     return active_device() + res + (white_list.value if white_list.value else "")
                  
   
-def blacklist_read():   
-    black_list_size       = c_int()  
-    str_black_list  = c_char_p()      
-    dev             = DEV_HND
+def blacklist_read(dev=DEV_HND):   
+    list_size       = c_int()  
+    str_black_list  = c_char_p()          
     dev.status      = mySO.AIS_Blacklist_Read(dev.hnd,PASS,byref(str_black_list))
-    if dev.status == 0: 
+    if dev.status == DL_OK: 
         list_size = len(str_black_list.value)    
+    
     res = "AIS_Blacklist_Read(pass:%s): black_list(size= %d | %s) > %s\n" % (PASS,list_size,str_black_list.value,dl_status2str(dev.status))        
-    if dev.status and  black_list_size.value <= 0:        
-        return active_device() + res  
-    return active_device() + res + str_black_list.value
+    if dev.status and  list_size.value <= 0:        
+        return   
+    
+    return res + str_black_list.value
                                        
 
 def blacklist_write(black_list_write):
@@ -272,8 +268,8 @@ def list_device(dev = DEV_HND):
         #return dc,list_info
             
             
-def DoCmd(dev):    
-    #dev = DEV_HND
+def DoCmd(dev=DEV_HND):    
+    
     if dev.status:
         return
         
@@ -288,16 +284,13 @@ def DoCmd(dev):
             
   
             
-def log_get(_dev = DEV_HND):    
-  
-    dev = DEV_HND
-    
+def log_get():    
+    dev = DEV_HND    
     dev.status = mySO.AIS_GetLog(dev.hnd,PASS)
     res = wr_status('AIS_GetLog()',dev.status)        
     if dev.status != 0:
         return active_device() + res   
-    DoCmd(dev)
-    
+    DoCmd(dev)    
     log = PrintLOG()    
     return active_device() + res + log
                
@@ -306,9 +299,9 @@ def log_by_index(start_index,stop_index):
     dev         = DEV_HND          
     dev.status  = mySO.AIS_GetLogByIndex(dev.hnd,PASS,start_index,stop_index)        
     res = "AIS_GetLogByIndex:(pass: %s [ %d - %d ] >> %s)\n" % (PASS,start_index,stop_index,E_ERROR_CODES[dev.status])    
-    if dev.status != 0:
+    if dev.status !=0:
         return active_device() + res
-    DoCmd()    
+    DoCmd(dev)    
     log = PrintLOG()
     return active_device() + res + log
            
@@ -322,7 +315,7 @@ def log_by_time(start_time,end_time):
     res = "AIS_GetLogByTime:(pass: %s [ %10d - %10d ] >> %s)\n" % (PASS,start_time.value,end_time.value,E_ERROR_CODES[dev.status])    
     if dev.status !=0:
         return active_device() + res
-    DoCmd()    
+    DoCmd(dev)    
     log = PrintLOG()  
     return active_device() + res + log
            
@@ -347,8 +340,8 @@ def get_unread_log_one(choise):
               
                  
     def u_log_count():            
-        MainLoop()               
-        return dev.UnreadLog 
+        MainLoop(dev)               
+        print_log_unread(dev) 
                
         
         
@@ -433,11 +426,11 @@ def get_unread_log_one(choise):
         dev.status = mySO.AIS_UnreadLOG_Ack(dev.hnd,rec_to_ack)
         res = wr_status("AIS_UnreadLOG_Ack()",dev.status)
         if dev.status:
-             return
+             return        
         return res 
      
     if choise == 1:
-       return u_log_count()
+       u_log_count()
     elif choise == 2:
        return u_log_get()
     elif choise == 3:
@@ -659,7 +652,7 @@ def RTEListen(max_sec):
     while (time.ctime(time.time()) < time.ctime(stop_time)) :
         for hnd in HND_LIST:
             dev.hnd = hnd            
-            MainLoop()                       
+            MainLoop(dev)                       
         #print rte
         #time.sleep(THD_SLEEP)     
     print "End RTE listen"    
@@ -859,14 +852,19 @@ def PrintRTE():
                "LOG unread (incremental) = %d\n" % dev.UnreadLog + \
                wr_status('AIS_ReadRTE()', DL_STATUS)
        
-    
-
-def MainLoop(dev):
-        
-        #dev               = DEV_HND
-        if not dev:
-            return False,None
+def print_log_unread(dev=DEV_HND):
+    if GetBaseName() == AIS_SHELL:
+        print "LOG unread (incremental) = %d" % dev.UnreadLog 
             
+
+def MainLoop(dev=DEV_HND):
+     
+        if not dev:
+            return False,
+        
+        b_print = False
+        p_print = str()
+        
         rte = "" 
         rte_dict = ""            
         real_time_events  = c_int()
@@ -903,45 +901,58 @@ def MainLoop(dev):
          
         if dev.status !=0:
             if (dev.status_last != dev.status): 
-                wr_status("MainLoop()",dev.status)
+                p_print = wr_status("MainLoop()",dev.status)                        
                 dev.status_last = dev.status
-
-            return str(dev.status),None
+                if GetBaseName()== AIS_SHELL:
+                    print p_print            
+            return False,
         
         if dev.RealTimeEvents:                   
-            rte = PrintRTE()
-            
-            print rte
-            
-            if GetBaseName() == AIS_SHELL:
-                print "".join(rte)
-            
-            
+            rte = PrintRTE()           
+            p_print = "".join(rte)
+            if GetBaseName()== AIS_SHELL:
+                print p_print
+                        
         if dev.LogAvailable:
-            print("LOG= %d\n" % dev.LogAvailable)
+            p_print = "LOG= %d\n" % dev.LogAvailable
+            if GetBaseName()== AIS_SHELL:
+                print p_print
             PrintLOG()
         
-        
-        if dev.UnreadLog_last != dev.UnreadLog:                                
-                   # print "LOG unread (incremental) = %d" % dev.UnreadLog                 
-                    dev.UnreadLog_last = dev.UnreadLog
+        if dev.UnreadLog != 0:
+            if dev.UnreadLog_last != dev.UnreadLog:              
+                dev.UnreadLog_last = dev.UnreadLog                                            
+                if GetBaseName()== AIS_SHELL:
+                    print_log_unread(dev)
+                        
                     
-                  
         if dev.TimeoutOccurred:
-            print("TimeoutOccurred= %d\n" % dev.TimeoutOccurred)  
+            p_print = "TimeoutOccurred= %d\n" % dev.TimeoutOccurred  
+            if GetBaseName()== AIS_SHELL:
+                    print p_print
             
-        if dev.Status:        
+            
+            
+        if dev.Status: 
+            p_print = "[%d] local_status= %s\n" % (dev.idx,dl_status2str(dev.Status))       
             if GetBaseName() == AIS_SHELL:
-                print "[%d] local_status= %s\n" % (dev.idx,dl_status2str(dev.Status))
+                print p_print
                 
      
         if dev.cmdPercent:
            print_percent(dev.cmdPercent)
         
         if dev.cmdResponses:            
-            print "\n-- COMMAND FINISH !\n"
+            p_print = "\n-- COMMAND FINISH !\n"
             dev.cmd_finish = True
-    
+            if GetBaseName() == AIS_SHELL:
+                print p_print
+                
+#         if dev.DeviceStatus_last != dev.DeviceStatus:
+#            #dbg_deviceStatus2str...
+#            dev.DeviceStatus_last = dev.DeviceStatus 
+#              
+       
         return True,rte
  
 
@@ -987,7 +998,7 @@ def add_device(device_type,device_id):
     status = DL_STATUS
     status = mySO.AIS_List_AddDeviceForCheck(device_type,device_id)
     print "AIS_List_AddDeviceForCheck(type: %d, id: %d)> { %s }" % \
-			(int(device_type), int(device_id), dl_status2str(status))
+			(device_type, device_id, dl_status2str(status))
     
     return (status if status else False)
 
@@ -998,9 +1009,7 @@ def load_list_from_file():
     list_fn        = "readers.ini"
     added_dev_type = 0
     #status = DL_STATUS
-    dev_type_enum  = c_char_p()
-    
-   
+    dev_type_enum  = c_int()
    
     if not os.path.isfile(list_fn):
         if GetBaseName() == AIS_SHELL:
@@ -1012,15 +1021,11 @@ def load_list_from_file():
             if not line.startswith('#') and not(line.startswith("\n")) :                                            
                 ll = line.split(":")
                 dev_type_str = ll[0]                                               
-                dev_id       = ll[1]           
-                status = mySO.device_type_str2enum(dev_type_str,byref(dev_type_enum))
-                
+                dev_id       = int(ll[1])           
+                status = mySO.device_type_str2enum(dev_type_str,byref(dev_type_enum))                
                 if status:
-                    continue
-                
-               
-                
-                if add_device(dev_type_enum,dev_id) == 0:
+                    continue           
+                if add_device(int(dev_type_enum.value),dev_id) == 0:
                     added_dev_type += 1
             
     fini.close()                
@@ -1031,33 +1036,31 @@ def load_list_from_file():
     return False
  
 
-def list_for_check_print():   
-    
+def list_for_check_print():
+    rv = c_char_p()  
+    dev_type_str = c_char_p()
+    dev_type = c_int()
+    dev_id   = c_int()     
     rv = AISGetDevicesForCheck()    
-    if not rv:
-        return
-    if len(rv) == 0:
-        return      
     
-    while True:
-        dev_type_str = c_char_p()
-        dev_type = c_int()
-        dev_id   = c_int()
-        r = rv.split(":")        
-        if  len(r) != 2:
-            break 
-        dev_type = int(r[0])
-        dev_id   = int(r[1])
+    if not rv: return     
+    if len(rv) == 0:return
+   
+    r = rv.split("\n")
       
-        status = mySO.device_type_enum2str(dev_type,byref(dev_type_str))
-       
+    for ll in r:      
+        t = str(ll)       
+        if len(t) <4:break        
+        t = t.split(":")       
+        dev_type = int(t[0])
+        dev_id   = int(t[1])
+      
+        status = mySO.device_type_enum2str(dev_type,byref(dev_type_str))       
         if status:
-            continue
-        print "   %20s (enum= %d) on ID %d\n" % (dev_type_str.value,dev_type,dev_id)
+            continue        
+        print "   %20s (enum= %d) on ID %d" % (dev_type_str.value,dev_type,dev_id)
        
-        if rv.endswith('\n'):
-            break
-        
+     
 def prepare_list_for_check():
     print "AIS_List_GetDevicesForCheck() BEFORE / DLL STARTUP"
     list_for_check_print()
@@ -1114,19 +1117,19 @@ def print_datatype_size():
         
 def thread_main_loop():
     while not shut_event.is_set():
-        my_lock.acquire()
+        #my_lock.acquire()
         #active_device()
         dev     = DEV_HND
         dev.idx = HND_LIST.index(dev.hnd) 
         dev.idx +=1 
         MainLoop(dev)
-        my_lock.release()
+        #my_lock.release()
         
 def thread_meni_loop():
     while not shut_event.is_set():
-        my_lock.acquire()
+        #my_lock.acquire()
         MeniLoop()
-        my_lock.release()
+        #my_lock.release()
         
  
 def thread_loop_all():    
@@ -1140,6 +1143,8 @@ def thread_loop_all():
                 t_main_loop.join(timeout=.5)
             if t_meni_loop.isAlive():
                 t_meni_loop.join(timeout=.5)                
+        
+               
         
         except (KeyboardInterrupt,SystemExit) as E:
             shut_event.set()
@@ -1203,8 +1208,8 @@ def MeniLoop():
             if sys.platform.startswith('linux'):
                 os.system('pkill -9 python')
             elif sys.platform.startswith('win'):            
-                sys.exit(0)
-            return False 
+                sys.exit(1)
+           # return False 
         
         
         elif m_char == 'Q':
@@ -1215,18 +1220,21 @@ def MeniLoop():
                     m = sys.stdin.read(1)  
                     if m =='n' or m == 'N':
                         break
-                    else:                    
+                    else: 
+                        sys.stdin.read(1)                   
                         r = raw_input("Enter device type (1,2, ... , %d)('x' for exit !)   : " % (max_dev-1))                        
                         if r == "x":
+                            deviceType = 0
                             break
                         elif r.isdigit():
-                            deviceType = int(r)                        
-                        r = raw_input("Enter device bus ID (if full duplex then enter 0) : ")           
-                        if  r == 'x':
-                            deviceId = 0
-                        elif r.isdigit():                  
-                            deviceId = int(r) 
-                        print " Again (Y/N) ? "
+                            deviceType = int(r) 
+                                                
+                        r = raw_input("Enter device bus ID (if full duplex then enter 0)   : ")                                   
+                        if r.isdigit():                  
+                            deviceId = int(r)                         
+                        print(" Again (Y/N) ? ")
+                        
+                            
                 return edit_device_list(choise,f_name,deviceType,deviceId)                       
                 
             
@@ -1264,11 +1272,13 @@ def MeniLoop():
                     
                     
                     elif choise == 'x':
+                        if GetBaseName() == AIS_SHELL:
+                            print ShowMeni()
                         break
     
             print_meni()
             loop_meni()
-        
+            
               
         elif m_char == 'w': 
             print "-= Read White List =-"               
@@ -1331,8 +1341,8 @@ def MeniLoop():
             print '#=- Read LOG by Time (time-stamp) range -=#'                   
             sys.stdin.read(1)
             try:
-                start_time = (input("Enter time-stamp start:"))    
-                end_time   = (input("Enter time-stamp stop :"))
+                start_time = int(raw_input("Enter time-stamp start:"))    
+                end_time   = int(raw_input("Enter time-stamp stop :"))
             except:
                 ShowMeni()
             print log_by_time(start_time,end_time)
@@ -1434,7 +1444,12 @@ def MeniLoop():
             
         elif m_char == 'F':
             fw_update()
-            
+        
+        elif m_char == 'E':
+            ee_lock()
+        
+        elif m_char == 'e':
+            ee_unlock()
          
         return True
   
