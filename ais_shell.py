@@ -186,12 +186,12 @@ def print_percent(Percent):
 def ee_lock():
     dev = DEV_HND
     dev.status = mySO.AIS_EE_WriteProtect(dev.hnd,PASS)
-    print wr_status("EEPROM Lock - AIS_EE_WriteProtect()",dev.status)
+    return wr_status("EEPROM Lock - AIS_EE_WriteProtect()",dev.status)
     
 def ee_unlock():
     dev = DEV_HND
     dev.status = mySO.AIS_EE_WriteUnProtect(dev.hnd,PASS)
-    print wr_status("EEPROM Unlock - AIS_EE_WriteUnProtect()",dev.status)
+    return wr_status("EEPROM Unlock - AIS_EE_WriteUnProtect()",dev.status)
     
 
    
@@ -341,7 +341,7 @@ def get_unread_log_one(choise):
                  
     def u_log_count():            
         MainLoop(dev)               
-        print_log_unread(dev) 
+        return print_log_unread(dev) 
                
         
         
@@ -430,7 +430,7 @@ def get_unread_log_one(choise):
         return res 
      
     if choise == 1:
-       u_log_count()
+       return u_log_count()
     elif choise == 2:
        return u_log_get()
     elif choise == 3:
@@ -778,8 +778,8 @@ def GetListInformation():
                                    )
                 )
                                       
-        res  = res_1 + format_grid[0]
-        return res_0 + res
+        res  = res_1 + format_grid[0] 
+        return res_0  + res
     
     
 def PrintRTE():
@@ -853,9 +853,10 @@ def PrintRTE():
                wr_status('AIS_ReadRTE()', DL_STATUS)
        
 def print_log_unread(dev=DEV_HND):
-    if GetBaseName() == AIS_SHELL:
-        print "LOG unread (incremental) = %d" % dev.UnreadLog 
-            
+#     if GetBaseName() == AIS_SHELL:
+#         print "LOG unread (incremental) = %d" % dev.UnreadLog 
+#     if GetBaseName() == AIS_HTTP:
+        return "LOG unread (incremental) = %d" % dev.UnreadLog        
 
 def MainLoop(dev=DEV_HND):
      
@@ -956,7 +957,7 @@ def MainLoop(dev=DEV_HND):
         return True,rte
  
 
-def fw_update(dev = DEV_HND):
+def fw_update(dev = DEV_HND,fw_name=None):
     if GetBaseName() == AIS_SHELL:
         print "Flashing firmware part."
         print "Flash firmware for selected device."
@@ -965,33 +966,31 @@ def fw_update(dev = DEV_HND):
         if len(fw_name) == 0:
             print"Error while getting file name !"
             return
-        progress.print_hdr = True
-        dev.status = mySO.AIS_FW_Update(dev.hnd,fw_name,0)
-        print "\nAIS_FW_Update(%s)> %s\n" % (fw_name, dl_status2str(dev.status))
-    
+    progress.print_hdr = True
+    dev.status = mySO.AIS_FW_Update(dev.hnd,fw_name,0)
+    res = "\nAIS_FW_Update(%s)> %s\n" % (fw_name, dl_status2str(dev.status))
+    return res
  
-def config_file_rd(dev = DEV_HND):    
+def config_file_rd(dev = DEV_HND,fname=None):    
     if not dev:
-        return
-    
+        return    
     file_name = "BaseHD-%s-ID%d-" % (dev.SN,dev.ID)   
     localtime = time.localtime(time.time())
     file_name = file_name + time.strftime("%Y%m%d_%H%M%S",localtime)    
-    file_name.__add__ (".config")     
-    if GetBaseName() == AIS_SHELL:
+    file_name.__add__ (".config")             
+    if  GetBaseName() == AIS_SHELL:
         print "Read configuration from the device - to the file"
-        print "Config file - enter for default [%s] : " % file_name
+        print "Config file - enter for default [%s] : " % file_name 
         sys.stdin.read(1)
-        fname = raw_input()
-        if not fname  == '\n':
-            fname = file_name 
-        if not fname:
-            if GetBaseName() == AIS_SHELL:
-                print "No valid file name"
-                return                                    
-        print "AIS_Config_Read(file: %s)" % fname
-        dev.status = mySO.AIS_Config_Read(dev.hnd,PASS,fname.encode())
-        print wr_status("AIS_Config_Read",dev.status)    
+        fname = raw_input()        
+    if not fname  == '\n':
+        fname = file_name 
+    if not fname:                    
+        return "No valid file name"                                   
+    
+    f_print = "AIS_Config_Read(file: %s)\n" % fname
+    dev.status = mySO.AIS_Config_Read(dev.hnd,PASS,fname.encode())
+    return f_print + wr_status("AIS_Config_Read",dev.status)    
 
 
 def add_device(device_type,device_id):
@@ -1074,22 +1073,20 @@ def prepare_list_for_check():
     list_for_check_print()
   
          
-def config_file_wr(dev = DEV_HND):
+def config_file_wr(dev = DEV_HND,fname=None):
     file_name = "BaseHD-xxx.config"    
     if GetBaseName() == AIS_SHELL:
         print "Store configuration from file to the device"
         print "Config file - enter for default [%s] : " % file_name
         sys.stdin.read(1)
         fname = raw_input()
-        if not fname  == '\n':
-            fname = file_name
-        if not fname:
-            if GetBaseName() == AIS_SHELL:
-                print "No valid file name"
-                return                                     
-        print "AIS_Config_Send(file: %s)" % fname
-        dev.status = mySO.AIS_Config_Send(dev.hnd,fname.encode())        
-        print wr_status("AIS_Config_Send",dev.status) 
+    if not fname  == '\n':
+        fname = file_name
+    if not fname:            
+        return "No valid file name"                                        
+    f_print = "AIS_Config_Send(file: %s\n" % fname
+    dev.status = mySO.AIS_Config_Send(dev.hnd,fname.encode())        
+    return f_print + wr_status("AIS_Config_Send",dev.status) 
     
 def TestLights(light_choise):               
         l = {'green_master': False,
@@ -1437,19 +1434,19 @@ def MeniLoop():
             print(ShowMeni())
                              
         elif m_char == 's':
-            config_file_rd()
+            print config_file_rd()
          
         elif m_char == 'S':
-            config_file_wr()
+            print config_file_wr()
             
         elif m_char == 'F':
-            fw_update()
+            print fw_update()
         
         elif m_char == 'E':
-            ee_lock()
+            print ee_lock()
         
         elif m_char == 'e':
-            ee_unlock()
+            print ee_unlock()
          
         return True
   
