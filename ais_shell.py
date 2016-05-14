@@ -844,22 +844,8 @@ def PrintRTE():
                wr_status('AIS_ReadRTE()', DL_STATUS)
        
 def print_log_unread(dev=DEV_HND):
-<<<<<<< .mine
-    if GetBaseName() == AIS_SHELL:
-        print "LOG unread (incremental) = %d" % dev.UnreadLog
-    if GetBaseName() == AIS_HTTP:
-        return "LOG unread (incremental) = %d" % dev.UnreadLog 
-            
-||||||| .r45
-    if GetBaseName() == AIS_SHELL:
-        print "LOG unread (incremental) = %d" % dev.UnreadLog 
-            
-=======
-#     if GetBaseName() == AIS_SHELL:
-#         print "LOG unread (incremental) = %d" % dev.UnreadLog 
-#     if GetBaseName() == AIS_HTTP:
-        return "LOG unread (incremental) = %d" % dev.UnreadLog        
->>>>>>> .r46
+    return "LOG unread (incremental) = %d" % dev.UnreadLog        
+
 
 def MainLoop(dev=DEV_HND):
      
