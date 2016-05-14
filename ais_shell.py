@@ -725,21 +725,13 @@ def GetListInformation():
         devStatus      = c_int()
         systemStatus   = c_int()    
         
-        res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'
-                   
-        devCount  =  AISUpdateAndGetCount()                        
- 
-                                 
-       
+        res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
+        devCount  =  AISUpdateAndGetCount()                         
         del HND_LIST[:]        
-        #for i in HND_LIST:HND_LIST.remove(i)
-            
-            
+     
         for i in range(0,devCount):
 
-            dev = DEV_HND
-           
-            
+            dev = DEV_HND          
             DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
                                                      byref(devSerial),
                                                      byref(devType),
@@ -756,8 +748,7 @@ def GetListInformation():
                 return                
                                         
             HND_LIST.append(hnd.value)
-            AISOpen()
-            
+            AISOpen()            
             dev.idx = i + 1            
             dev.hnd  = hnd.value
             dev.SN   = devSerial.value.decode("utf-8")
@@ -853,10 +844,22 @@ def PrintRTE():
                wr_status('AIS_ReadRTE()', DL_STATUS)
        
 def print_log_unread(dev=DEV_HND):
+<<<<<<< .mine
+    if GetBaseName() == AIS_SHELL:
+        print "LOG unread (incremental) = %d" % dev.UnreadLog
+    if GetBaseName() == AIS_HTTP:
+        return "LOG unread (incremental) = %d" % dev.UnreadLog 
+            
+||||||| .r45
+    if GetBaseName() == AIS_SHELL:
+        print "LOG unread (incremental) = %d" % dev.UnreadLog 
+            
+=======
 #     if GetBaseName() == AIS_SHELL:
 #         print "LOG unread (incremental) = %d" % dev.UnreadLog 
 #     if GetBaseName() == AIS_HTTP:
         return "LOG unread (incremental) = %d" % dev.UnreadLog        
+>>>>>>> .r46
 
 def MainLoop(dev=DEV_HND):
      
@@ -1112,49 +1115,7 @@ def print_datatype_size():
     print "\t<c_char>    = %d B" % sizeof(c_char)
     print "-----------------------------------------"
         
-def thread_main_loop():
-    while not shut_event.is_set():
-        #my_lock.acquire()
-        #active_device()
-        dev     = DEV_HND
-        dev.idx = HND_LIST.index(dev.hnd) 
-        dev.idx +=1 
-        MainLoop(dev)
-        #my_lock.release()
-        
-def thread_meni_loop():
-    while not shut_event.is_set():
-        #my_lock.acquire()
-        MeniLoop()
-        #my_lock.release()
-        
- 
-def thread_loop_all():    
-    t_main_loop = threading.Thread(target=thread_main_loop)
-    t_meni_loop = threading.Thread(target=thread_meni_loop)
-    t_main_loop.start()
-    t_meni_loop.start()
-    while True:
-        try:
-            if t_main_loop.isAlive():
-                t_main_loop.join(timeout=.5)
-            if t_meni_loop.isAlive():
-                t_meni_loop.join(timeout=.5)                
-        
-               
-        
-        except (KeyboardInterrupt,SystemExit) as E:
-            shut_event.set()
-            if sys.platform.startswith('linux'):
-                os.system('pkill -9 python')
-            elif sys.platform.startswith('win'):            
-                sys.exit(0)
-            
-        
-        
 
-my_lock = threading.Lock()
-shut_event = threading.Event()
  
 
 def init():  
@@ -1163,7 +1124,7 @@ def init():
     print_datatype_size()    
     list_device()            
     print ShowMeni()
-    #thread_loop_all()
+   
 
 
 
@@ -1200,12 +1161,11 @@ def MeniLoop():
             
         if m_char == 'x': 
             print 'EXIT\n'
-            AISClose()
-            shut_event.set()
+            AISClose()           
             if sys.platform.startswith('linux'):
                 os.system('pkill -9 python')
             elif sys.platform.startswith('win'):            
-                sys.exit(1)
+                sys.exit(0)
            # return False 
         
         
