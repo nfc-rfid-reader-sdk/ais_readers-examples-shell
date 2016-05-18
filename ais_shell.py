@@ -747,7 +747,7 @@ def GetListInformation():
                                                                
             if DL_STATUS != 0:                
                 return                
-                                        
+            #del HND_LIST[:]                            
             HND_LIST.append(hnd.value)
             AISOpen()            
             dev.idx = i + 1            
@@ -896,7 +896,7 @@ def MainLoop(dev=DEV_HND):
                 dev.status_last = dev.status
                 if GetBaseName()== AIS_SHELL:
                     print p_print            
-            return False,
+            return False,None
         
         if dev.RealTimeEvents:                   
             rte = PrintRTE()           
