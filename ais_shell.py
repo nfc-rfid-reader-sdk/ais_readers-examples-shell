@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.0.0  (lib:4.9.10.4)    
+@version  : 3.1.0.1  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -265,7 +265,8 @@ def list_device(dev = DEV_HND):
         else:
             list_info = "NO DEVICE FOUND"
             print list_info        
-        #return dc,list_info
+        
+        return dc,
             
             
 def DoCmd(dev=DEV_HND):    
@@ -1158,25 +1159,23 @@ def MeniLoop():
         elif m_char == 'Q':
             def dev_input(choise,f_name):
                 max_dev   = E_KNOWN_DEVICE_TYPES['DL_AIS_SYSTEM_TYPES_COUNT'] 
-                print "Enter device type and then enter device BUS ID for check"    
-                while True:          
-                    m = sys.stdin.read(1)  
-                    if m =='n' or m == 'N':
-                        break
-                    else: 
-                        sys.stdin.read(1)                   
+                print "Enter device type and then enter device BUS ID for check"
+                sys.stdin.read(1)    
+                while True:                                                                     
                         r = raw_input("Enter device type (1,2, ... , %d)('x' for exit !)   : " % (max_dev-1))                        
                         if r == "x":
                             deviceType = 0
                             break
                         elif r.isdigit():
                             deviceType = int(r) 
-                                                
+                                            
                         r = raw_input("Enter device bus ID (if full duplex then enter 0)   : ")                                   
                         if r.isdigit():                  
-                            deviceId = int(r)                         
-                        print(" Again (Y/N) ? ")
-                        
+                            deviceId = int(r)                                            
+                        m = raw_input("Again (Y/N) ? ")                        
+                        if m is 'n' or m is 'N':
+                            break
+
                             
                 return edit_device_list(choise,f_name,deviceType,deviceId)                       
                 
