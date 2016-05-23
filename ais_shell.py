@@ -198,28 +198,32 @@ def ee_unlock():
 def whitelist_read():       
     white_list_size = c_int()
     white_list      = c_char_p()    
-    dev             = DEV_HND       
+    dev             = DEV_HND    
     dev.status      = mySO.AIS_Whitelist_Read(dev.hnd,PASS,byref(white_list))    
-    if white_list.value:
+    if dev.status == DL_OK:
         white_list_size = len(white_list.value)
     else:
         white_list_size = 0    
     res = "AIS_Whitelist_Read(pass:%s): size= %d >%s\n" % (PASS,white_list_size,dl_status2str(dev.status))        
-    return active_device() + res + (white_list.value if white_list.value else "")
+    
+    if dev.status and white_list_size<=0:
+        return
+    return active_device() + res + white_list.value
                  
   
 def blacklist_read(dev=DEV_HND):   
     list_size       = c_int()  
-    str_black_list  = c_char_p()          
+    str_black_list  = c_char_p()        
     dev.status      = mySO.AIS_Blacklist_Read(dev.hnd,PASS,byref(str_black_list))
     if dev.status == DL_OK: 
-        list_size = len(str_black_list.value)    
-    
+        list_size = len(str_black_list.value) 
+    else:
+        list_size =0    
     res = "AIS_Blacklist_Read(pass:%s): black_list(size= %d | %s) > %s\n" % (PASS,list_size,str_black_list.value,dl_status2str(dev.status))        
-    if dev.status and  list_size.value <= 0:        
+    if dev.status and  list_size<= 0:        
         return   
     
-    return res + str_black_list.value
+    return active_device() + res + str_black_list.value
                                        
 
 def blacklist_write(black_list_write):
@@ -280,10 +284,7 @@ def DoCmd(dev=DEV_HND):
     while (not dev.cmd_finish):
         if not MainLoop(dev):
             break
-       
-            
-            
-  
+
             
 def log_get():    
     dev = DEV_HND    
