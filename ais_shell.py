@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.0.1  (lib:4.9.11.1)    
+@version  : 3.1.1  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -996,11 +996,9 @@ def add_device(device_type,device_id):
 
         
 def load_list_from_file():
-    list_fn        = "readers.ini"
-    added_dev_type = 0
-    #status = DL_STATUS
-    dev_type_enum  = c_int()
-   
+    list_fn = "readers.ini"
+    added_dev_type = 0    
+    dev_type_enum = c_int()   
     if not os.path.isfile(list_fn):
         if GetBaseName() == AIS_SHELL:
             print "File <%s> not found. \n" % list_fn
@@ -1008,18 +1006,18 @@ def load_list_from_file():
             
     with open(list_fn,"rt") as fini:
         for line in fini:          
-            if not line.startswith('#') and not(line.startswith("\n")) :                                            
+            if  line.startswith('#') or (line.startswith("\n")):
+                continue
+            else:                
                 ll = line.split(":")
                 dev_type_str = ll[0]                                               
-                dev_id       = int(ll[1])           
-                status = mySO.device_type_str2enum(dev_type_str,byref(dev_type_enum))                
+                dev_id = int(ll[1])           
+                status = mySO.device_type_str2enum(dev_type_str, byref(dev_type_enum))                
                 if status:
                     continue           
-                if add_device(int(dev_type_enum.value),dev_id) == 0:
+                if add_device(int(dev_type_enum.value), dev_id) == 0:
                     added_dev_type += 1
-            
-    fini.close()                
-     
+                     
     if (added_dev_type):
         return True
     print "Error. No device is added in the list...\n"    
@@ -1040,15 +1038,16 @@ def list_for_check_print():
       
     for ll in r:      
         t = str(ll)       
-        if len(t) <4:break        
+        if len(t) < 4:
+            break        
         t = t.split(":")       
         dev_type = int(t[0])
         dev_id   = int(t[1])
       
-        status = mySO.device_type_enum2str(dev_type,byref(dev_type_str))       
+        status = mySO.device_type_enum2str(dev_type, byref(dev_type_str))       
         if status:
             continue        
-        print "   %20s (enum= %d) on ID %d" % (dev_type_str.value,dev_type,dev_id)
+        print "   %20s (enum= %d) on ID %d" % (dev_type_str.value, dev_type, dev_id)
        
      
 def prepare_list_for_check():
@@ -1076,7 +1075,7 @@ def config_file_wr(dev = DEV_HND,fname=None):
     if not fname:            
         return "No valid file name"                                        
     f_print = "AIS_Config_Send(file: %s\n" % fname
-    dev.status = mySO.AIS_Config_Send(dev.hnd,fname.encode())        
+    dev.status = mySO.AIS_Config_Send(dev.hnd, fname.encode())        
     return f_print + wr_status("AIS_Config_Send",dev.status) 
     
 def TestLights(light_choise):               
