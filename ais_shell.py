@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.1  (lib:4.9.11.1)    
+@version  : 3.1.2  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -25,7 +25,7 @@ class S_PROGRESS(Structure):
     _fields_ = [("print_hdr",c_bool),
                 ("percent_old",c_int)]
     
-progress = S_PROGRESS(True,-1)    
+progress = S_PROGRESS(True, -1)    
 
     
     
@@ -1006,7 +1006,7 @@ def load_list_from_file():
             
     with open(list_fn,"rt") as fini:
         for line in fini:          
-            if  line.startswith('#') or (line.startswith("\n")):
+            if  line.startswith('#') or (line.startswith(("","\n","\r\n"))):
                 continue
             else:                
                 ll = line.split(":")
