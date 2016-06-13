@@ -1005,11 +1005,8 @@ def load_list_from_file():
             return False
             
     with open(list_fn,"rt") as fini:
-        for line in fini:          
-           # if  line.startswith('#') or (line.startswith(("","\n","\r\n"))):
-             if not line.startswith('#') and not(line.startswith("\n")):
-               # continue
-            #else:                
+        for line in fini:                     
+             if not line.startswith('#') and not line.startswith("\n") and not line.startswith("\r\n"):                         
                 ll = line.split(":")
                 dev_type_str = ll[0]                                               
                 dev_id = int(ll[1])           
