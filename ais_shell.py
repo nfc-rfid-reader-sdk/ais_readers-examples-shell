@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.2  (lib:4.9.11.1)    
+@version  : 3.1.3  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -1006,9 +1006,10 @@ def load_list_from_file():
             
     with open(list_fn,"rt") as fini:
         for line in fini:          
-            if  line.startswith('#') or (line.startswith(("","\n","\r\n"))):
-                continue
-            else:                
+           # if  line.startswith('#') or (line.startswith(("","\n","\r\n"))):
+             if not line.startswith('#') and not(line.startswith("\n")):
+               # continue
+            #else:                
                 ll = line.split(":")
                 dev_type_str = ll[0]                                               
                 dev_id = int(ll[1])           
