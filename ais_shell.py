@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.3  (lib:4.9.11.1)    
+@version  : 3.1.4  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -159,18 +159,15 @@ def AISGetLibraryVersionStr():
     return dll_ver()    
     
 
-def active_device():  
-    pass 
-    dev     = DEV_HND
+def active_device():      
+    dev = DEV_HND      
     dev.idx = HND_LIST.index(dev.hnd) 
-    dev.idx +=1    
+    dev.idx += 1    
     res     = "dev [%d] | hnd= 0x%X  " % (dev.idx,dev.hnd) 
     return res    
    
 
 def print_percent(Percent):
-
-    
 
     if progress.print_hdr == True:
         print_percent_hdr()
@@ -286,18 +283,22 @@ def DoCmd(dev=DEV_HND):
             break
 
             
-def log_get():    
-    dev = DEV_HND    
-    dev.status = mySO.AIS_GetLog(dev.hnd,PASS)
-    res = wr_status('AIS_GetLog()',dev.status)        
+def log_get(hnd=None):    
+    dev = DEV_HND
+    #dev.hnd = hnd
+    #print "%X" % dev.hnd    
+    dev.status = mySO.AIS_GetLog(dev.hnd, PASS)
+    res = wr_status('AIS_GetLog()', dev.status)        
     if dev.status != 0:
-        return active_device() + res   
+       return active_device() + res   
+       #return "dev[%d]: %s" % (HND_LIST.index(dev.hnd), res)
     DoCmd(dev)    
     log = PrintLOG()    
     return active_device() + res + log
+    #return "dev[%d]: %s" % (HND_LIST.index(dev.hnd), res) + log
+
                
-    
-def log_by_index(start_index,stop_index):   
+def log_by_index(start_index, stop_index, hnd=None):   
     dev         = DEV_HND          
     dev.status  = mySO.AIS_GetLogByIndex(dev.hnd,PASS,start_index,stop_index)        
     res = "AIS_GetLogByIndex:(pass: %s [ %d - %d ] >> %s)\n" % (PASS,start_index,stop_index,E_ERROR_CODES[dev.status])    
@@ -309,7 +310,7 @@ def log_by_index(start_index,stop_index):
            
     
     
-def log_by_time(start_time,end_time): 
+def log_by_time(start_time, end_time, hnd=None): 
     start_time = c_uint64(start_time)
     end_time   = c_uint64(end_time)         
     dev        = DEV_HND       
@@ -729,7 +730,9 @@ def GetListInformation():
         
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
         devCount  =  AISUpdateAndGetCount()                         
-        del HND_LIST[:]        
+       
+       
+        del HND_LIST[:]   
      
         for i in range(0,devCount):
 
