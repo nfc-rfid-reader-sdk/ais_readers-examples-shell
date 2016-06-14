@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.4  (lib:4.9.11.1)    
+@version  : 3.1.5  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -730,12 +730,11 @@ def GetListInformation():
         
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
         devCount  =  AISUpdateAndGetCount()                         
-       
-       
-        del HND_LIST[:]   
-     
+                     
+        if devCount < 0:
+            return
+        del HND_LIST[:]        
         for i in range(0,devCount):
-
             dev = DEV_HND          
             DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
                                                      byref(devSerial),
@@ -849,7 +848,7 @@ def PrintRTE():
                wr_status('AIS_ReadRTE()', DL_STATUS)
        
 def print_log_unread(dev=DEV_HND):
-    return "LOG unread (incremental) = %d" % dev.UnreadLog        
+    return "%s:LOG unread (incremental) = %d" % (active_device(), dev.UnreadLog )       
 
 
 def MainLoop(dev=DEV_HND):
