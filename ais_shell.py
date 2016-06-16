@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.6  (lib:4.9.11.1)    
+@version  : 3.1.7  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
