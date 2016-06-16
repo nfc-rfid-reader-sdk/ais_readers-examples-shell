@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.5  (lib:4.9.11.1)    
+@version  : 3.1.6  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -731,50 +731,51 @@ def GetListInformation():
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
         devCount  =  AISUpdateAndGetCount()                         
                      
-        if devCount < 0:
+        if devCount < 0 or devCount == 0:            
             return
-        del HND_LIST[:]        
-        for i in range(0,devCount):
-            dev = DEV_HND          
-            DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
-                                                     byref(devSerial),
-                                                     byref(devType),
-                                                     byref(devID),
-                                                     byref(devFW_VER),
-                                                     byref(devCommSpeed),
-                                                     byref(devFTDI_Serial),
-                                                     byref(devOpened),
-                                                     byref(devStatus),
-                                                     byref(systemStatus)
-                                                    ) 
-                                                               
-            if DL_STATUS != 0:                
-                return                
-            #del HND_LIST[:]                            
-            HND_LIST.append(hnd.value)
-            AISOpen()            
-            dev.idx = i + 1            
-            dev.hnd  = hnd.value
-            dev.SN   = devSerial.value.decode("utf-8")
-            dev.ID   = devID.value
-            dev.open = devOpened.value
-            
-            res_1 += (mojFormat.format(dev.idx,
-                                   dev.hnd,
-                                   dev.SN,
-                                   devType.value,
-                                   dev.ID,
-                                   devFW_VER.value,
-                                   devCommSpeed.value,
-                                   devFTDI_Serial.value.decode("utf-8"),
-                                   dev.open,
-                                   devStatus.value,
-                                   systemStatus.value
-                                   )
-                )
-                                      
-        res  = res_1 + format_grid[0] 
-        return res_0  + res
+        else:         
+            del HND_LIST[:]        
+            for i in range(0,devCount):
+                dev = DEV_HND          
+                DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
+                                                         byref(devSerial),
+                                                         byref(devType),
+                                                         byref(devID),
+                                                         byref(devFW_VER),
+                                                         byref(devCommSpeed),
+                                                         byref(devFTDI_Serial),
+                                                         byref(devOpened),
+                                                         byref(devStatus),
+                                                         byref(systemStatus)
+                                                        ) 
+                                                                   
+                if DL_STATUS != 0:                
+                    return                
+                #del HND_LIST[:]                            
+                HND_LIST.append(hnd.value)
+                AISOpen()            
+                dev.idx = i + 1            
+                dev.hnd  = hnd.value
+                dev.SN   = devSerial.value.decode("utf-8")
+                dev.ID   = devID.value
+                dev.open = devOpened.value
+                
+                res_1 += (mojFormat.format(dev.idx,
+                                       dev.hnd,
+                                       dev.SN,
+                                       devType.value,
+                                       dev.ID,
+                                       devFW_VER.value,
+                                       devCommSpeed.value,
+                                       devFTDI_Serial.value.decode("utf-8"),
+                                       dev.open,
+                                       devStatus.value,
+                                       systemStatus.value
+                                       )
+                    )
+                                          
+            res  = res_1 + format_grid[0] 
+            return res_0  + res
     
     
 def PrintRTE():
