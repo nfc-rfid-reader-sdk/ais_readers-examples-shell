@@ -1356,6 +1356,7 @@ def MeniLoop():
             print 'GET DEVICE COUNT : %d\n' % AISUpdateAndGetCount() 
         
         elif m_char == 'p':
+            global PASS
             print "Old password is actual application password: %s " % PASS           
             sys.stdin.read(1)
             new_pass = raw_input("Enter new password for units ( and application ): ")
