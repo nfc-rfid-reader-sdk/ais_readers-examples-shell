@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.7  (lib:4.9.11.1)    
+@version  : 3.1.8  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -1366,7 +1366,7 @@ def MeniLoop():
             print password_change(new_pass)
             
         elif m_char == 'P':
-            #global PASS
+            global PASS
             print "Actual application password is :%s " % PASS
             sys.stdin.read(1)
             new_pass = raw_input("Enter new default application password :")
