@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.8  (lib:4.9.11.1)    
+@version  : 3.1.9  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -14,7 +14,6 @@ import time
 from platform import platform
 from ctypes import *
 import threading
-
 from constants import *
 from dl_status import *
 from ais_readers_list import *
@@ -965,25 +964,25 @@ def fw_update(dev = DEV_HND,fw_name=None):
     res = "\nAIS_FW_Update(%s)> %s\n" % (fw_name, dl_status2str(dev.status))
     return res
  
-def config_file_rd(dev = DEV_HND,fname=None):    
+def config_file_rd(dev = DEV_HND,fname=None):  
     if not dev:
         return    
     file_name = "BaseHD-%s-ID%d-" % (dev.SN,dev.ID)   
     localtime = time.localtime(time.time())
     file_name = file_name + time.strftime("%Y%m%d_%H%M%S",localtime)    
-    file_name.__add__ (".config")             
+   
     if  GetBaseName() == AIS_SHELL:
         print "Read configuration from the device - to the file"
         print "Config file - enter for default [%s] : " % file_name 
         sys.stdin.read(1)
-        fname = raw_input()        
-    if not fname  == '\n':
-        fname = file_name 
-    if not fname:                    
-        return "No valid file name"                                   
-    
-    f_print = "AIS_Config_Read(file: %s)\n" % fname
-    dev.status = mySO.AIS_Config_Read(dev.hnd,PASS,fname.encode())
+        fname = raw_input() 
+        if fname == '\n':
+            file_name = fname        
+    if fname:
+        file_name = fname   
+    file_name = file_name + ".config"
+    f_print = "AIS_Config_Read(file: %s)\n" % file_name
+    dev.status = mySO.AIS_Config_Read(dev.hnd,PASS,file_name.encode())
     return f_print + wr_status("AIS_Config_Read",dev.status)    
 
 
