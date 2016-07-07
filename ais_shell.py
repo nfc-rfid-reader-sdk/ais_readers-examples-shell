@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.9  (lib:4.9.11.1)    
+@version  : 3.1.10  (lib:4.9.11.1)    
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -985,7 +985,22 @@ def config_file_rd(dev = DEV_HND,fname=None):
     dev.status = mySO.AIS_Config_Read(dev.hnd,PASS,file_name.encode())
     return f_print + wr_status("AIS_Config_Read",dev.status)    
 
-
+def config_file_wr(dev = DEV_HND,fname=None):
+    file_name = "BaseHD-xxx.config"    
+    if GetBaseName() == AIS_SHELL:
+        print "Store configuration from file to the device"
+        print "Config file - enter for default [%s] : " % file_name
+        sys.stdin.read(1)
+        fname = raw_input()
+        if fname  == '\n':
+            file_name = fname
+    if fname:            
+        file_name = fname                                        
+    f_print = "AIS_Config_Send(file: %s)\n" % file_name
+    dev.status = mySO.AIS_Config_Send(dev.hnd, file_name.encode())        
+    return f_print + wr_status("AIS_Config_Send",dev.status)
+    
+    
 def add_device(device_type,device_id):
     status = DL_STATUS
     status = mySO.AIS_List_AddDeviceForCheck(device_type,device_id)
@@ -1063,20 +1078,7 @@ def prepare_list_for_check():
     list_for_check_print()
   
          
-def config_file_wr(dev = DEV_HND,fname=None):
-    file_name = "BaseHD-xxx.config"    
-    if GetBaseName() == AIS_SHELL:
-        print "Store configuration from file to the device"
-        print "Config file - enter for default [%s] : " % file_name
-        sys.stdin.read(1)
-        fname = raw_input()
-    if not fname  == '\n':
-        fname = file_name
-    if not fname:            
-        return "No valid file name"                                        
-    f_print = "AIS_Config_Send(file: %s\n" % fname
-    dev.status = mySO.AIS_Config_Send(dev.hnd, fname.encode())        
-    return f_print + wr_status("AIS_Config_Send",dev.status) 
+ 
     
 def TestLights(light_choise):               
         l = {'green_master': False,
