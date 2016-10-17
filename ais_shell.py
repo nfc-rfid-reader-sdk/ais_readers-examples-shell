@@ -45,20 +45,29 @@ def GetBaseName():
 
 def GetPlatformLib():        
     basename = GetBaseName()
-    if basename == AIS_SHELL:
-        LIB_PATH = SHELL_LIB_PATH
-    elif basename == AIS_HTTP:
-        LIB_PATH = HTTP_LIB_PATH
-    elif basename == AIS_MAIN:
-        LIB_PATH = AIS_MAIN_LIB_PATH 
-       
-    if sys.platform.startswith("win32"):                                    
-        return windll.LoadLibrary(os.getcwd() + LIB_PATH + WIN_PATH + LIB_WIN32)
-    elif sys.platform.startswith("linux"):
-        return cdll.LoadLibrary(os.getcwd() + LIB_PATH + ARMHF_PATH + LIB_ARMHF) #ARMHF_PATH + LIB_ARMHF (for BeagleBoneBlack)
-    elif platform().lower().find('armv7l-with-debian') > -1:
-        return cdll.LoadLibrary(os.getcwd() + LIB_PATH+ LINUX_PATH + LIB_ARM) #CARM    
-    
+    try:
+        if basename == AIS_SHELL:
+            LIB_PATH = SHELL_LIB_PATH
+        elif basename == AIS_HTTP:
+            LIB_PATH = HTTP_LIB_PATH
+        elif basename == AIS_MAIN:
+            LIB_PATH = AIS_MAIN_LIB_PATH 
+        elif basename[-4:] == '.exe':  #for binary file
+            LIB_PATH = SHELL_LIB_PATH
+        
+           
+        if sys.platform.startswith("win32"):                                    
+            return windll.LoadLibrary(os.getcwd() + LIB_PATH + WIN_PATH + LIB_WIN32)
+        elif sys.platform.startswith("linux"):
+            return cdll.LoadLibrary(os.getcwd() + LIB_PATH + ARMHF_PATH + LIB_ARMHF) #ARMHF_PATH + LIB_ARMHF (for BeagleBoneBlack)
+        elif platform().lower().find('armv7l-with-debian') > -1:
+            return cdll.LoadLibrary(os.getcwd() + LIB_PATH+ LINUX_PATH + LIB_ARM) #CARM    
+    except:
+        print "The library folder could not be found !"
+        if sys.platform.startswith('linux'):
+            os.system('pkill -9 python')
+        elif sys.platform.startswith('win'):            
+            sys.exit()
     
     
 mySO = GetPlatformLib()
