@@ -739,8 +739,8 @@ def GetListInformation():
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
         devCount  =  AISUpdateAndGetCount()                         
                      
-        if devCount < 0:            
-            return
+        if devCount <= 0:                      
+            return "NO DEVICE FOUND"
         else:         
             del HND_LIST[:]        
         for i in range(0,devCount):
