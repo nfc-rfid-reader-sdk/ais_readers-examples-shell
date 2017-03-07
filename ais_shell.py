@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 3.1.10  (lib:4.9.11.1)    
+@version  : 4.0.0      
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -829,8 +829,7 @@ def PrintRTE():
             dev.log.log_nfc_uid     = nfcUid
             dev.log.log_nfc_uid_len = nfcUidLen.value
             dev.log.log_timestamp   = timeStamp.value
-            
-                                                
+                                           
             
             if  DL_STATUS != 0:            
                 break  
@@ -849,12 +848,11 @@ def PrintRTE():
                                      dev.log.log_timestamp,
                                      time.ctime(dev.log.log_timestamp)
                                     ) 
-                         
-                                       
+                                                                
             res = res_rte + '\n' + rte_list_header[2] + '\n'       
-        return rte_head + res + \
-               "LOG unread (incremental) = %d\n" % dev.UnreadLog + \
-               wr_status('AIS_ReadRTE()', DL_STATUS)
+      
+        resultText = rte_head + res + "LOG unread (incremental) = %d\n" % dev.UnreadLog + wr_status('AIS_ReadRTE()', DL_STATUS)                  
+        return resultText
        
 def print_log_unread(dev=DEV_HND):
     return "%s:LOG unread (incremental) = %d" % (active_device(), dev.UnreadLog )       
@@ -866,8 +864,7 @@ def MainLoop(dev=DEV_HND):
             return False,
         
         b_print = False
-        p_print = str()
-        
+        p_print = str()       
         rte = "" 
         rte_dict = ""            
         real_time_events  = c_int()
@@ -909,9 +906,9 @@ def MainLoop(dev=DEV_HND):
                 if GetBaseName()== AIS_SHELL:
                     print p_print            
             return False,None
-        
-        if dev.RealTimeEvents:                   
-            rte = PrintRTE()           
+            
+        if dev.RealTimeEvents == 1:                   
+            rte = PrintRTE()          
             p_print = "".join(rte)
             if GetBaseName()== AIS_SHELL:
                 print p_print
@@ -950,13 +947,8 @@ def MainLoop(dev=DEV_HND):
             dev.cmd_finish = True
             if GetBaseName() == AIS_SHELL:
                 print p_print
-                
-#         if dev.DeviceStatus_last != dev.DeviceStatus:
-#            #dbg_deviceStatus2str...
-#            dev.DeviceStatus_last = dev.DeviceStatus 
-#              
-       
-        return True,rte
+                       
+        return True
  
 
 def fw_update(dev = DEV_HND,fw_name=None):
