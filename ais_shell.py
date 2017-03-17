@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 4.0.1
+@version  : 4.0.2
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -618,7 +618,7 @@ def PrintLOG():
             for i in range(0,dev.log.log_nfc_uid_len):                
                 nfc_uid += ":%02X" % (dev.log.log_nfc_uid[i])
             
-            uidNfcUidLen = '[' + str(dev.log.log_nfc_uid_len) + '] | ' + nfcuid  
+            uidNfcUidLen = '[' + str(dev.log.log_nfc_uid_len) + '] | ' + nfc_uid[1:]  
           
             
             
@@ -734,6 +734,7 @@ def GetListInformation():
             return "NO DEVICE FOUND"
         else:         
             del HND_LIST[:]        
+       
         for i in range(0,devCount):
             dev = DEV_HND          
             DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
@@ -825,10 +826,10 @@ def PrintRTE():
             if  DL_STATUS != 0:            
                 break  
             nfc_uid = ''    
-            for i in range(0,dev.log.log_nfc_uid_len):                
-                nfc_uid += ":%02X" % dev.log.log_nfc_uid[i]
+            for i in range(0, dev.log.log_nfc_uid_len):                
+                nfc_uid += ":%02X" % dev.log.log_nfc_uid[i] 
             
-            uid_uid_len = '[' + str(dev.log.log_nfc_uid_len) + '] | ' + nfc_uid 
+            uid_uid_len = '[' + str(dev.log.log_nfc_uid_len) + '] | ' + nfc_uid[1:] 
             
             res_rte += rte_format.format (dev.log.log_index,                                     
                                      dbg_action2str(dev.log.log_action),
@@ -896,7 +897,7 @@ def MainLoop(dev=DEV_HND):
                 dev.status_last = dev.status
                 if GetBaseName()== AIS_SHELL:
                     print p_print            
-            return False,None
+            return False, None
             
         if dev.RealTimeEvents == 1:                   
             rte = PrintRTE()          
@@ -939,7 +940,7 @@ def MainLoop(dev=DEV_HND):
             if GetBaseName() == AIS_SHELL:
                 print p_print
                        
-        return True
+        return True, rte
  
 
 def fw_update(dev = DEV_HND,fw_name=None):
