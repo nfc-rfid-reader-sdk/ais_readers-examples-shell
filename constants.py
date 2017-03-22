@@ -25,4 +25,16 @@ SECONDS         = 10
 RECORDS_TO_ACK  = 1
 NFC_UID_MAX_LEN = 10
 PULSE_DURATION  = 2000
+
+DEVIDX          = 0
+DEVHND          = 1
+DEVSN           = 2
+DEVTYPE         = 3
+DEVID           = 4
+DEVFW_VER       = 5
+DEVCOMM_SPEED   = 6
+DEVFTDI_SERIAL  = 7
+DEVOPEN         = 8
+DEVSTATUS       = 9
+DEVSYSTEMSTATUS = 10
  

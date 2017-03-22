@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 4.0.2.3
+@version  : 4.0.2.5
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -17,6 +17,7 @@ import threading
 from constants import *
 from dl_status import *
 from ais_readers_list import *
+import calendar, datetime
 import device_list 
 
 
@@ -34,6 +35,8 @@ HND_LIST  = []
 HND_AIS   = c_void_p()    
 devCount  = c_long()  
 DEV_HND   = device_list .S_DEVICE()
+
+DDEV_HND  ={}
 log_t     = device_list .S_LOG()
 MINIMAL_LIB_VERSION = "4.9.9.3"
 
@@ -115,35 +118,34 @@ def AISGetTime():
         timezone = c_int()
         DST      = c_int()
         offset   = c_int()                       
-        dev.status = mySO.AIS_GetTime(dev.hnd,byref(currTime),byref(timezone),byref(DST),byref(offset))                            
+        dev.status = mySO.AIS_GetTime(dev.hnd, byref(currTime), byref(timezone), byref(DST), byref(offset))                            
         if dev.status:
             return wr_status("AIS_GetTime()",dev.status)                      
              
         active_device()        
-        res =  "AIS_GetTime(dev[%d] hnd=0x%X)> {%d(%s):%s} = (tz= %d | dst= %d | offset= %d)  %d | %s\n" % (dev.idx,dev.hnd,dev.status,hex(dev.status), \
-                 E_ERROR_CODES[dev.status],timezone.value,DST.value,offset.value,currTime.value, time.ctime(currTime.value))                                        
+        res =  "AIS_GetTime(dev[%d] hnd=0x%X)> {%d(%s):%s} = (tz= %d | dst= %d | offset= %d)  %d | %s\n" % (dev.idx, dev.hnd, dev.status, hex(dev.status), \
+                 E_ERROR_CODES[dev.status], timezone.value, DST.value, offset.value, currTime.value, datetime.datetime.utcfromtimestamp(currTime.value))                                        
         return res
         
         
     
 def AISSetTime():
-    pass 
-    currTime = c_uint64
+    pass     
     timez    = c_int
     DST      = c_int
     offset   = c_int 
-    dev      = DEV_HND    
-    currTime = int(time.time())
+    dev      = DEV_HND            
+    currTime = int(time.mktime(time.localtime(calendar.timegm(time.gmtime()))))   
     timez    = sys_get_timezone()
     DST      = sys_get_daylight()
     offset   = sys_get_dstbias()       
     ais_set_time          = mySO.AIS_SetTime
-    ais_set_time.argtypes = (c_void_p,c_char_p,c_uint64,c_int,c_int,c_int)
+    ais_set_time.argtypes = (c_void_p, c_char_p, c_uint64, c_int, c_int,c_int)
     ais_set_time.restype  = c_int
-    result   = ais_set_time(dev.hnd,PASS,currTime,timez,DST,offset)
+    result   = ais_set_time(dev.hnd, PASS, currTime, timez, DST, offset)
     active_device()
     res    = "AIS_SetTime(dev[%d] : pass:%s)> timezone=%d | DST=%d |offset=%d {%d(%s)%s}|%s\n" % \
-             (dev.idx,PASS,timez,DST,offset,result,hex(result),E_ERROR_CODES[result],time.ctime(currTime))    
+             (dev.idx, PASS, timez, DST, offset, result, hex(result), E_ERROR_CODES[result], datetime.datetime.utcfromtimestamp(currTime))    
     return res
       
     
@@ -714,66 +716,50 @@ def ListDevices():
 
 
 def GetListInformation():
-        res_0,res_1 = "",""
-        res = ""        
-        hnd            = c_void_p()
-        devSerial      = c_char_p()
-        devType        = c_int()
-        devID          = c_int()
-        devFW_VER      = c_int()
-        devCommSpeed   = c_int()
+        res_0, res_1, res = "", "", ""                            
+        idx  = c_int()                
+        hnd =  c_void_p()
+        devSerial = c_char_p()
+        devType = c_int()
+        devID   = c_int()
+        devFW_VER  = c_int()
+        devCommSpeed  = c_int()
         devFTDI_Serial = c_char_p()
-        devOpened      = c_int()
-        devStatus      = c_int()
-        systemStatus   = c_int()    
+        devOpened = c_int()
+        devStatus = c_int()
+        systemStatus = c_int()
         
+                        
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
         devCount  =  AISUpdateAndGetCount()                         
                      
         if devCount <= 0:
             return "NO DEVICE FOUND"
         else:         
-            del HND_LIST[:]        
+            del HND_LIST[:]
+            DDEV_HND.clear()        
        
-        for i in range(0,devCount):
-            dev = DEV_HND          
-            DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd),
-                                                     byref(devSerial),
-                                                     byref(devType),
-                                                     byref(devID),
-                                                     byref(devFW_VER),
-                                                     byref(devCommSpeed),
-                                                     byref(devFTDI_Serial),
-                                                     byref(devOpened),
-                                                     byref(devStatus),
-                                                     byref(systemStatus)
-                                                    ) 
-                                                               
+        for i in range(0, devCount):
+            dev = DEV_HND           
+            DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd), byref(devSerial), byref(devType), byref(devID), byref(devFW_VER), byref(devCommSpeed), byref(devFTDI_Serial), byref(devOpened), byref(devStatus), byref(systemStatus))
+                                                     
             if DL_STATUS != 0:                
                 return                
             #del HND_LIST[:]                            
-            HND_LIST.append(hnd.value)
+            HND_LIST.append(hnd.value)                       
             AISOpen()            
-            dev.idx = i + 1            
+            dev.idx  = i + 1            
             dev.hnd  = hnd.value
             dev.SN   = devSerial.value.decode("utf-8")
             dev.ID   = devID.value
             dev.open = devOpened.value
             
-            res_1 += (mojFormat.format(dev.idx,
-                                   dev.hnd,
-                                   dev.SN,
-                                   devType.value,
-                                   dev.ID,
-                                   devFW_VER.value,
-                                   devCommSpeed.value,
-                                   devFTDI_Serial.value.decode("utf-8"),
-                                   dev.open,
-                                   devStatus.value,
-                                   systemStatus.value
-                                   )
-                )
-                                      
+            res_1 += (mojFormat.format(dev.idx, dev.hnd, dev.SN, devType.value, dev.ID, devFW_VER.value, devCommSpeed.value, devFTDI_Serial.value.decode("utf-8"),
+                                   dev.open, devStatus.value, systemStatus.value))
+              
+            DDEV_HND.update({hnd.value : (dev.idx, dev.hnd, dev.SN, devType.value, dev.ID, devFW_VER.value, devCommSpeed.value, devFTDI_Serial.value.decode("utf-8"),
+                                   dev.open, devStatus.value, systemStatus.value)})                     
+                                                    
         res  = res_1 + format_grid[0] 
         return res_0  + res
     
