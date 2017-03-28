@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 4.0.2.5
+@version  : 4.0.3.1
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -211,40 +211,38 @@ def whitelist_read():
         white_list_size = len(white_list.value)
     else:
         white_list_size = 0    
-    res = "AIS_Whitelist_Read(pass:%s): size= %d >%s\n" % (PASS,white_list_size,dl_status2str(dev.status))        
-    
-    if dev.status and white_list_size<=0:
-        return
-    return active_device() + res + white_list.value
+    res = "AIS_Whitelist_Read(pass:%s): size= %d >\n%s\n > %s\n" % (PASS, white_list_size, white_list.value, dl_status2str(dev.status))           
+    if dev.status != 0 and white_list_size<=0:
+        return res
+    return active_device() + res 
                  
   
 def blacklist_read(dev=DEV_HND):   
     list_size       = c_int()  
     str_black_list  = c_char_p()        
-    dev.status      = mySO.AIS_Blacklist_Read(dev.hnd,PASS,byref(str_black_list))
+    dev.status      = mySO.AIS_Blacklist_Read(dev.hnd, PASS, byref(str_black_list))
     if dev.status == DL_OK: 
-        list_size = len(str_black_list.value) 
+        list_size = len(str_black_list.value)                       
     else:
-        list_size =0    
-    res = "AIS_Blacklist_Read(pass:%s): black_list(size= %d | %s) > %s\n" % (PASS,list_size,str_black_list.value,dl_status2str(dev.status))        
-    if dev.status and  list_size<= 0:        
-        return   
-    
-    return active_device() + res + str_black_list.value
+        list_size = 0    
+    res = "AIS_Blacklist_Read(pass:%s): size= %d >\n%s\n > %s\n" % (PASS, list_size, str_black_list.value, dl_status2str(dev.status))        
+    if dev.status !=0 and  list_size<= 0:        
+        return res      
+    return active_device() + res 
                                        
 
 def blacklist_write(black_list_write):
     dev              = DEV_HND
     dev.status       = mySO.AIS_Blacklist_Write(dev.hnd,PASS,black_list_write)
     return active_device() + \
-           "\nAIS_Blacklist_Write(pass:%s):black_list= %s > %s\n" %  (PASS,black_list_write,dl_status2str(dev.status))
+           "\nAIS_Blacklist_Write(pass:%s):black_list= %s > %s\n" %  (PASS, black_list_write, dl_status2str(dev.status))
     
 
 
 def whitelist_write(white_list_write):      
     dev              = DEV_HND      
     dev.status       = mySO.AIS_Whitelist_Write(dev.hnd,PASS,white_list_write)
-    return active_device() + "\nAIS_Whitelist_Write(pass:%s):white_list= %s > %s\n" %  (PASS,white_list_write,dl_status2str(dev.status))    
+    return active_device() + "\nAIS_Whitelist_Write(pass:%s):white_list= %s > %s\n" %  (PASS, white_list_write, dl_status2str(dev.status))    
           
            
  
@@ -286,42 +284,40 @@ def DoCmd(dev=DEV_HND):
             
 def log_get(hnd=None):    
     dev = DEV_HND
-    #dev.hnd = hnd
-    #print "%X" % dev.hnd    
+    activDev = active_device()    
     dev.status = mySO.AIS_GetLog(dev.hnd, PASS)
     res = wr_status('AIS_GetLog()', dev.status)        
     if dev.status != 0:
-       return active_device() + res   
-       #return "dev[%d]: %s" % (HND_LIST.index(dev.hnd), res)
+       return activDev + res         
     DoCmd(dev)    
     log = PrintLOG()    
-    return active_device() + res + log
-    #return "dev[%d]: %s" % (HND_LIST.index(dev.hnd), res) + log
-
-               
+    return activDev + res + log
+                   
 def log_by_index(start_index, stop_index, hnd=None):   
-    dev         = DEV_HND          
-    dev.status  = mySO.AIS_GetLogByIndex(dev.hnd,PASS,start_index,stop_index)        
-    res = "AIS_GetLogByIndex:(pass: %s [ %d - %d ] >> %s)\n" % (PASS,start_index,stop_index,E_ERROR_CODES[dev.status])    
-    if dev.status !=0:
-        return active_device() + res
+    dev         = DEV_HND 
+    activDev = active_device()         
+    dev.status  = mySO.AIS_GetLogByIndex(dev.hnd, PASS, start_index, stop_index)        
+    res = "AIS_GetLogByIndex:(pass: %s [ %d - %d ] >> %s)\n" % (PASS, start_index, stop_index, E_ERROR_CODES[dev.status])    
+    if dev.status != 0:
+        return activDev + res
     DoCmd(dev)    
     log = PrintLOG()
-    return active_device() + res + log
+    return activDev + res + log
            
     
     
 def log_by_time(start_time, end_time, hnd=None): 
     start_time = c_uint64(start_time)
     end_time   = c_uint64(end_time)         
-    dev        = DEV_HND       
-    dev.status = mySO.AIS_GetLogByTime(dev.hnd,PASS,start_time,end_time)
-    res = "AIS_GetLogByTime:(pass: %s [ %10d - %10d ] >> %s)\n" % (PASS,start_time.value,end_time.value,E_ERROR_CODES[dev.status])    
+    dev        = DEV_HND 
+    activDev = active_device()      
+    dev.status = mySO.AIS_GetLogByTime(dev.hnd, PASS, start_time, end_time)
+    res = "AIS_GetLogByTime:(pass: %s [ %10d - %10d ] >> %s)\n" % (PASS, start_time.value, end_time.value, E_ERROR_CODES[dev.status])    
     if dev.status !=0:
-        return active_device() + res
+        return activDev + res
     DoCmd(dev)    
     log = PrintLOG()  
-    return active_device() + res + log
+    return activDev + res + log
            
     
 
@@ -754,11 +750,13 @@ def GetListInformation():
             dev.ID   = devID.value
             dev.open = devOpened.value
             
+            DDEV_HND.update({hnd.value : (dev.idx, dev.hnd, dev.SN, devType.value, dev.ID, devFW_VER.value, devCommSpeed.value, devFTDI_Serial.value.decode("utf-8"),
+                                   dev.open, devStatus.value, systemStatus.value)})  
+            
             res_1 += (mojFormat.format(dev.idx, dev.hnd, dev.SN, devType.value, dev.ID, devFW_VER.value, devCommSpeed.value, devFTDI_Serial.value.decode("utf-8"),
                                    dev.open, devStatus.value, systemStatus.value))
               
-            DDEV_HND.update({hnd.value : (dev.idx, dev.hnd, dev.SN, devType.value, dev.ID, devFW_VER.value, devCommSpeed.value, devFTDI_Serial.value.decode("utf-8"),
-                                   dev.open, devStatus.value, systemStatus.value)})                     
+                               
                                                     
         res  = res_1 + format_grid[0] 
         return res_0  + res
@@ -833,7 +831,7 @@ def PrintRTE():
         return resultText
        
 def print_log_unread(dev=DEV_HND):
-    return "%s:LOG unread (incremental) = %d" % (active_device(), dev.UnreadLog )       
+    return "%s:LOG unread (incremental) = %d %s" % (active_device(), dev.UnreadLog, wr_status('',dev.status) )       
 
 
 def MainLoop(dev=DEV_HND):
@@ -866,7 +864,7 @@ def MainLoop(dev=DEV_HND):
                                              byref(_status)
                                             ) 
              
-        dev.RealTimeEvents  = real_time_events.value
+        dev.RealTimeEvents  = real_time_events.value       
         dev.LogAvailable    = log_available.value
         dev.UnreadLog       = unreadLog.value
         dev.cmdResponses    = cmd_responses.value                                                 
@@ -877,7 +875,7 @@ def MainLoop(dev=DEV_HND):
          
         
          
-        if dev.status !=0:
+        if dev.status != 0:
             if (dev.status_last != dev.status): 
                 p_print = wr_status("MainLoop()",dev.status)                        
                 dev.status_last = dev.status
