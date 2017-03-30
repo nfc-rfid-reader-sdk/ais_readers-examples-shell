@@ -373,9 +373,8 @@ def get_unread_log_one(choise):
                                            )
      
         if dev.status:                                
-            return str(dev.status) 
+            return wr_status("AIS_UnreadLOG_Get()", dev.status)    
         
-      
         nfc_uid = ""           
         for i in range(nfcUidLen.value):                
             nfc_uid += ":%0.2X" % nfcUid[i]
@@ -416,7 +415,7 @@ def get_unread_log_one(choise):
             print wr_status("AIS_UnreadLOG_Get()",dev.status)
             return
         
-        return log_header + res + wr_status("AIS_UnreadLOG_Get()",dev.status)
+        return log_header + res + wr_status("AIS_UnreadLOG_Get()", dev.status)
                
         
         
@@ -424,7 +423,7 @@ def get_unread_log_one(choise):
         rec_to_ack = c_uint32()
         rec_to_ack = RECORDS_TO_ACK
         dev.status = mySO.AIS_UnreadLOG_Ack(dev.hnd,rec_to_ack)
-        res = wr_status("AIS_UnreadLOG_Ack()",dev.status)
+        res = wr_status("AIS_UnreadLOG_Ack()", dev.status)
         if dev.status:
              return        
         return res 
@@ -473,7 +472,7 @@ def lock_open():
 
  
  
-def edit_device_list(choise,f_name=None,deviceType=0,deviceId=0):    
+def edit_device_list(choise, f_name=None, deviceType=0, deviceId=0):    
     dev_name  = c_char_p()
     dev_dsc   = c_char_p()
     status    = DL_STATUS
@@ -498,7 +497,7 @@ def edit_device_list(choise,f_name=None,deviceType=0,deviceId=0):
                 t = "NOT SUPORTED! \n"
             else:               
                 body.append(t)
-                body.append("%15s | %s\n" % (dev_name.value,dev_dsc.value))
+                body.append("%15s | %s\n" % (dev_name.value, dev_dsc.value))
         
         return ''.join(header) + \
                ''.join(body) + \
@@ -515,7 +514,7 @@ def edit_device_list(choise,f_name=None,deviceType=0,deviceId=0):
         for i in range(0,len(a)-1):
             c = a[i]
             b = c.split(':')
-            status = mySO.dbg_device_type(int(b[0]),byref(dev_name),byref(dev_dsc),0,0,0,0,0)
+            status = mySO.dbg_device_type(int(b[0]), byref(dev_name), byref(dev_dsc),0,0,0,0,0)
             body.append("\t%2s  | \t%2s | %18s | %s\n" % (b[0],b[1],dev_name.value,dev_dsc.value))                   
         
         return ''.join(header) + \
