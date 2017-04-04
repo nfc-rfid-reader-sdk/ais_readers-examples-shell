@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 4.0.3.1
+@version  : 4.0.3.2
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -729,6 +729,8 @@ def GetListInformation():
         devCount  =  AISUpdateAndGetCount()                         
                      
         if devCount <= 0:
+            del HND_LIST[:]
+            DDEV_HND.clear()
             return "NO DEVICE FOUND"
         else:         
             del HND_LIST[:]
