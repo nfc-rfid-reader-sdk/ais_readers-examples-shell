@@ -722,12 +722,10 @@ def GetListInformation():
         devFTDI_Serial = c_char_p()
         devOpened = c_int()
         devStatus = c_int()
-        systemStatus = c_int()
-        
-                        
+        systemStatus = c_int()                        
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
-        devCount  =  AISUpdateAndGetCount()                         
-                     
+        
+        devCount  =  AISUpdateAndGetCount()                                              
         if devCount <= 0:
             del HND_LIST[:]
             DDEV_HND.clear()
