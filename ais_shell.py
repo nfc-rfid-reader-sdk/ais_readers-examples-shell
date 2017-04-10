@@ -728,11 +728,12 @@ def GetListInformation():
                 
         devCount  =  AISUpdateAndGetCount()            
        
-        if devCount == 0:
-            #del HND_LIST[:]
-            #DDEV_HND.clear()
-            if GetBaseName() != AIS_SHELL:                
-                return 'NO DEVICE FOUND or resource busy'
+        if devCount <= 0: 
+           # del HND_LIST[:]
+           # DDEV_HND.clear()
+            
+            if GetBaseName() != AIS_SHELL:          
+                return 'NO DEVICE FOUND or resource busy'               
             return 'NO DEVICE FOUND'
         else:
             if GetBaseName() != AIS_SHELL:
@@ -746,8 +747,7 @@ def GetListInformation():
                                                      
             if DL_STATUS != 0:                
                 return                
-           
-            
+                
             HND_LIST.append(hnd.value)                       
             AISOpen()            
             dev.idx  = i + 1            
