@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 4.0.3.6
+@version  : 4.0.3.7
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -724,23 +724,15 @@ def GetListInformation():
         devStatus = c_int()
         systemStatus = c_int()                        
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
-        
-                
+                        
         devCount  =  AISUpdateAndGetCount()            
-       
-        if devCount <= 0: 
-           # del HND_LIST[:]
-           # DDEV_HND.clear()
-            
-            if GetBaseName() != AIS_SHELL:          
-                return 'NO DEVICE FOUND or resource busy'               
+                
+        if devCount == 0:                                      
             return 'NO DEVICE FOUND'
-        else:
-            if GetBaseName() != AIS_SHELL:
-                del HND_LIST[:]
-                DDEV_HND.clear()        
         
-       
+        del HND_LIST[:]
+        DDEV_HND.clear()        
+              
         for i in range(0, devCount):
             dev = DEV_HND           
             DL_STATUS =  mySO.AIS_List_GetInformation(byref(hnd), byref(devSerial), byref(devType), byref(devID), byref(devFW_VER), byref(devCommSpeed), byref(devFTDI_Serial), byref(devOpened), byref(devStatus), byref(systemStatus))
