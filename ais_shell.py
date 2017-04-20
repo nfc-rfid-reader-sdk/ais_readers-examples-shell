@@ -484,7 +484,7 @@ def edit_device_list(choise, f_name=None, deviceType=0, deviceId=0):
                 "------------+-----------------+------------------------------------\n"
                ]
     
-    def ReadersIni(eraseDevices=False, devType=None, devID=0, deviceErase=False):
+    def ReadersIni(eraseDevices=False, devType=None, devID=None, deviceErase=False):
         '''
             Manipulate readers.ini file 
         '''
