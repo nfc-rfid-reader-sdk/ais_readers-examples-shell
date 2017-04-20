@@ -12,8 +12,7 @@ E_KNOWN_DEVICE_TYPES = {
     'DL_AIS_37':8,
     'DL_AIS_BMR':9,
     'DL_AIS_BASE_HD':10,
-    'DL_AIS_BASE_HD_SDK':11,
-    
+    'DL_AIS_BASE_HD_SDK':11,    
     'DL_AIS_SYSTEM_TYPES_COUNT':12    
 } 
 

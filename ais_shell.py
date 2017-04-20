@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 4.0.3.7
+@version  : 4.0.3.8
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -19,6 +19,7 @@ from dl_status import *
 from ais_readers_list import *
 import calendar, datetime
 import device_list 
+
 
 
 class S_PROGRESS(Structure):
@@ -483,6 +484,66 @@ def edit_device_list(choise, f_name=None, deviceType=0, deviceId=0):
                 "------------+-----------------+------------------------------------\n"
                ]
     
+    def ReadersIni(eraseDevices=False, devType=None, devID=0, deviceErase=False):
+        '''
+            Manipulate readers.ini file 
+        '''
+        
+        iniName = 'readers.ini'
+        
+        fileHeader = '''
+# readers.ini
+#############
+# List of devices to check in opening process
+#
+# Add combination 
+#    Device type : ID on the bus ( 0 for unknown, one device on the bus or full-duplex device )
+# each in new line
+#
+# For line comment use character # - skip to the end of line
+# Look at ais_readers_list.h for detailed information
+#
+# Example: try to open device type DL_AIS_BASE_HD with ID 1 and / or 3 on the bus
+#          DL_AIS_BASE_HD_SDK:1
+#          DL_AIS_BASE_HD_SDK:3
+                
+        '''               
+        try:
+            if eraseDevices == True:    #erase all devices
+                with open(iniName, 'w') as iniFile:
+                    iniFile.write(fileHeader) 
+                    iniFile.close()
+            
+            elif deviceErase == True:  #erase one device
+                lines = ''
+                with open(iniName, 'r') as iniFile:
+                    lines = iniFile.readlines()
+                    iniFile.close()
+                                
+                with open(iniName, 'w') as iniFile:
+                    for line in lines:                                         
+                        if not line.startswith('#') and not line.startswith("\n") and not line.startswith("\r\n"):                                                                                   
+                            lineSplit = line.split(":")
+                            if not len(lineSplit) <= 1:                                                                                        
+                                status = mySO.device_type_enum2str(devType, byref(dev_name))                              
+                                if (lineSplit[0].strip() == dev_name.value) and (lineSplit[1].strip() == str(devID)):                                    
+                                    devTypeId = '%s:%s' % (lineSplit[0], lineSplit[1])                                          
+                                    lines.remove(devTypeId)                               
+                                    iniFile.write(''.join(lines))
+                                    break
+                    iniFile.close()                                                                                   
+            else:
+                with open(iniName, 'a') as iniFile:  #append 'devType:devID'               
+                    status = mySO.device_type_enum2str(devType, byref(dev_name))
+                    devTypeId = '\n%s:%s' % (dev_name.value, devID) 
+                    iniFile.write(devTypeId)
+                    iniFile.close()
+                   
+        except Exception as exc:
+            print 'Exception: %s ' % exc
+            
+        
+    
     def print_available_devices(): #1.                  
         header =[grid[0],"Look at ais_readers_list.h for Device enumeration\n", 
                 "Known devices ( supported by %s )\n" % AISGetLibraryVersionStr(), 
@@ -490,8 +551,8 @@ def edit_device_list(choise, f_name=None, deviceType=0, deviceId=0):
                  grid[1]
                 ]
         
-        for i in range(1,max_dev):
-            status = mySO.dbg_device_type(i,byref(dev_name),byref(dev_dsc),0,0,0,0,0)                                                                          
+        for i in range(1, max_dev):
+            status = mySO.dbg_device_type(i, byref(dev_name), byref(dev_dsc), 0, 0, 0, 0, 0)                                                                          
             t = ("\t %2d | " % i)
             if status:
                 t = "NOT SUPORTED! \n"
@@ -514,8 +575,8 @@ def edit_device_list(choise, f_name=None, deviceType=0, deviceId=0):
         for i in range(0,len(a)-1):
             c = a[i]
             b = c.split(':')
-            status = mySO.dbg_device_type(int(b[0]), byref(dev_name), byref(dev_dsc),0,0,0,0,0)
-            body.append("\t%2s  | \t%2s | %18s | %s\n" % (b[0],b[1],dev_name.value,dev_dsc.value))                   
+            status = mySO.dbg_device_type(int(b[0]), byref(dev_name), byref(dev_dsc), 0, 0, 0, 0, 0)
+            body.append("\t%2s  | \t%2s | %18s | %s\n" % (b[0], b[1], dev_name.value, dev_dsc.value))                   
         
         return ''.join(header) + \
                ''.join(body)  + \
@@ -523,6 +584,7 @@ def edit_device_list(choise, f_name=None, deviceType=0, deviceId=0):
                
     def clear_list(): #3        
         AISEraseAllDevicesForCheck()
+        ReadersIni(eraseDevices=True)
         return "Clear list for checking !"
    
   
@@ -534,12 +596,16 @@ def edit_device_list(choise, f_name=None, deviceType=0, deviceId=0):
         status      = DL_STATUS 
                
         if f_name == 'AIS_List_AddDeviceForCheck':    
-            status = mySO.AIS_List_AddDeviceForCheck(deviceType,deviceId)
-                
+            status = mySO.AIS_List_AddDeviceForCheck(deviceType, deviceId)
+            if status == DL_OK:
+                ReadersIni(devType=deviceType, devID=deviceId)
+                            
         elif f_name == 'AIS_List_EraseDeviceForCheck':
-            status = mySO.AIS_List_EraseDeviceForCheck(deviceType,deviceId)
+            status = mySO.AIS_List_EraseDeviceForCheck(deviceType, deviceId)
+            if status == DL_OK:
+                ReadersIni(deviceErase=True, devType=deviceType, devID=deviceId)
       
-        return "%s(type: %d, id: %d)> { %s }\n" % (f_name,deviceType,deviceId,dl_status2str(status)) + \
+        return "%s(type: %d, id: %d)> { %s }\n" % (f_name, deviceType, deviceId, dl_status2str(status)) + \
                "Finish list edit.\n" + \
                "AFTER UPDATE CYCLE \n%s" % AISGetDevicesForCheck()
  
@@ -550,7 +616,7 @@ def edit_device_list(choise, f_name=None, deviceType=0, deviceId=0):
     elif choise == 3:
         return clear_list()
     elif choise == 4 or choise == 5:       
-        return do_dev_action(f_name,deviceType,deviceId)
+        return do_dev_action(f_name, deviceType, deviceId)
     
 
 def password_change(new_pass):
@@ -983,9 +1049,6 @@ def add_device(device_type,device_id):
 			(device_type, device_id, dl_status2str(status))
     
     return (status if status else False)
-
-
-
         
 def load_list_from_file():
     list_fn = "readers.ini"
@@ -998,16 +1061,18 @@ def load_list_from_file():
             
     with open(list_fn,"rt") as fini:
         for line in fini:                     
-             if not line.startswith('#') and not line.startswith("\n") and not line.startswith("\r\n"):                         
-                ll = line.split(":")
-                dev_type_str = ll[0]                                               
-                dev_id = int(ll[1])           
-                status = mySO.device_type_str2enum(dev_type_str, byref(dev_type_enum))                
-                if status:
-                    continue           
-                if add_device(int(dev_type_enum.value), dev_id) == 0:
-                    added_dev_type += 1
-                     
+            if not line.startswith('#') and not line.startswith("\n") and not line.startswith("\r\n"):                         
+                ll = line.split(":")               
+                if not len(ll) <= 1:                            
+                    dev_type_str = ll[0]                                               
+                    dev_id = int(ll[1])           
+                    status = mySO.device_type_str2enum(dev_type_str, byref(dev_type_enum))                
+                    if status:
+                        continue           
+                    if add_device(int(dev_type_enum.value), dev_id) == 0:
+                        added_dev_type += 1
+                
+    fini.close()                 
     if (added_dev_type):
         return True
     print "Error. No device is added in the list...\n"    
@@ -1047,7 +1112,7 @@ def prepare_list_for_check():
     
     if not load_list_from_file():
         print "Tester try to connect with a Base HD device on any/unkown ID"                       
-        add_device(E_KNOWN_DEVICE_TYPES ["DL_AIS_BASE_HD_SDK"],0)
+        add_device(E_KNOWN_DEVICE_TYPES ["DL_AIS_BASE_HD_SDK"], 0)
         
     print "AIS_List_GetDevicesForCheck() AFTER LIST UPDATE"
     list_for_check_print()
@@ -1133,32 +1198,28 @@ def MeniLoop():
            # return False 
         
         
-        elif m_char == 'Q':
-            def dev_input(choise,f_name):
+        elif m_char == 'Q':           
+            def dev_input(choise, f_name):
                 max_dev   = E_KNOWN_DEVICE_TYPES['DL_AIS_SYSTEM_TYPES_COUNT'] 
-                print "Enter device type and then enter device BUS ID for check"
+                print "Enter device type and then enter device BUS ID for check"                              
                 sys.stdin.read(1)    
-                while True:                                                                     
-                        r = raw_input("Enter device type (1,2, ... , %d)('x' for exit !)   : " % (max_dev-1))                        
-                        if r == "x":
-                            deviceType = 0
-                            break
-                        elif r.isdigit():
-                            deviceType = int(r) 
-                                            
-                        r = raw_input("Enter device bus ID (if full duplex then enter 0)   : ")                                   
-                        if r.isdigit():                  
-                            deviceId = int(r)                                            
-                        m = raw_input("Again (Y/N) ? ")                        
-                        if m is 'n' or m is 'N':
-                            break
-
-                            
-                return edit_device_list(choise,f_name,deviceType,deviceId)                       
+                while True:                                                                                        
+                    r = raw_input("Enter device type (1,2, ... , %d)('x' for exit !)   : " % (max_dev-1))                        
+                    if r == "x":
+                        deviceType = 0
+                        break
+                    elif r.isdigit():
+                        deviceType = int(r)                                            
+                    r = raw_input("Enter device bus ID (if full duplex then enter 0)   : ")                                   
+                    if r.isdigit():                  
+                        deviceId = int(r)                                                           
+                    m = raw_input("Again (Y/N) ? ")                                                                               
+                    if m in ['n', 'N']:                        
+                        break                                                                    
+                    edit_device_list(choise, f_name, deviceType, deviceId)    
                 
-            
-            
-            
+                return edit_device_list(choise, f_name, deviceType, deviceId)                       
+                                                   
             def print_meni():
                 print """            
                     1 : show known device types
@@ -1187,9 +1248,7 @@ def MeniLoop():
                         print dev_input(4,"AIS_List_AddDeviceForCheck")
                     elif choise == '5':
                         print "AIS_List_EraseDeviceForCheck()..."
-                        print dev_input(5,"AIS_List_EraseDeviceForCheck")                        
-                    
-                    
+                        print dev_input(5,"AIS_List_EraseDeviceForCheck")                                                                
                     elif choise == 'x':
                         if GetBaseName() == AIS_SHELL:
                             print ShowMeni()
