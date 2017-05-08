@@ -2,7 +2,7 @@
 
 """
 @author   : Vladan S
-@version  : 4.0.3.8
+@version  : 4.0.4.0
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
@@ -91,7 +91,7 @@ def AISUpdateAndGetCount():
         list_up_gc.argtype = c_int
         list_up_gc.restype = c_int
         result  = list_up_gc(byref(device_count))        
-        return device_count.value
+        return result, device_count.value
 
     
 def AISOpen():       
@@ -263,8 +263,8 @@ def list_device(dev = DEV_HND):
             prepare_list_for_check()
             list_init = True
         print"checking...please wait..."       
-        devCount = AISUpdateAndGetCount()
-        print ("AIS_List_UpdateAndGetCount()= [%d]\n" % (devCount))
+        status, devCount = AISUpdateAndGetCount()
+        print ("AIS_List_UpdateAndGetCount()= status:{0} | count:[{1}]\n" .format (status, devCount))
         if devCount:
             print GetListInformation()
         return devCount
@@ -791,8 +791,11 @@ def GetListInformation():
         systemStatus = c_int()                        
         res_0 = format_grid[0] + '\n' + format_grid[1] + '\n' + format_grid[2] + '\n'                   
                         
-        devCount  =  AISUpdateAndGetCount()            
-                
+        status, devCount  =  AISUpdateAndGetCount()            
+        
+        if status != 0:
+            return "Update and get count= status:0x{:X} | dev count:[{}]\n" .format (status, devCount)
+                                
         if devCount == 0:                                      
             return 'NO DEVICE FOUND'
         
