@@ -2,11 +2,11 @@
 
 """
 @author   : Vladan S
-@version  : 4.0.4.1 (build)
 @copyright: D-Logic   http://www.d-logic.net/nfc-rfid-reader-sdk/
 
 """
 
+__program_version = '4.0.4.2 (build)'
 
 import os
 import sys
@@ -19,6 +19,7 @@ from dl_status import *
 from ais_readers_list import *
 import calendar, datetime
 import device_list 
+
 
 
 
@@ -41,11 +42,12 @@ DDEV_HND  ={}
 log_t     = device_list .S_LOG()
 MINIMAL_LIB_VERSION = "4.9.9.3"
 
-
-
-
 def GetBaseName():
     return os.path.basename(sys.argv[0])
+
+
+def AisShellpGetProgramVersion():
+    return 'App name  : {0}  : {1}' . format(AIS_SHELL, __program_version)
 
 def GetPlatformLib():        
     basename = GetBaseName()
