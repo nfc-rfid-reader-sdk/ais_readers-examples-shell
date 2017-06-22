@@ -6,7 +6,7 @@
 
 """
 
-__program_version = '4.0.4.2 (build)'
+__program_version = '4.0.4.3 (build)'
 
 import os
 import sys
