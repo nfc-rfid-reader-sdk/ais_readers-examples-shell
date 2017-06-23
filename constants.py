@@ -7,6 +7,8 @@ AIS_MAIN_LIB_PATH = "/web_api/shell/lib"
 AIS_SHELL       = 'ais_shell.py'
 AIS_HTTP        = 'ais_http.py'
 AIS_MAIN        = 'ais_readers_main_process.py'
+AIS_MAIN_EXE    = 'ais_readers_main_process.exe'
+
 
 WIN_PATH        = '/windows/x86/'
 LINUX_PATH      = '/linux/x86/'
